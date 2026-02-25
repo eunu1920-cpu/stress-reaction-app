@@ -161,21 +161,22 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
               </AccordionTrigger>
               <AccordionContent className="text-[#555555] pt-2 pb-4">
                 <div className="space-y-4">
-                  {q2Data.multiLayer.split('\n').map((line, index) => {
-                    const trimmedLine = line.trim()
-                    if (!trimmedLine) return null
+                  {q2Data.multiLayer.split(/\n\n/).map((section, index) => {
+                    const trimmedSection = section.trim()
+                    if (!trimmedSection) return null
                     
-                    // Check if line contains a perspective label
-                    const perspectiveMatch = trimmedLine.match(/^(심리학|뇌과학|철학적|불교|명리) 관점:/)
+                    // Check if section contains a perspective label
+                    const perspectiveMatch = trimmedSection.match(/^(심리학|뇌과학|철학적|불교|기질) 관점:/)
                     
                     if (perspectiveMatch) {
-                      const [label, ...contentParts] = trimmedLine.split(':')
-                      const content = contentParts.join(':').trim()
+                      const lines = trimmedSection.split('\n')
+                      const label = lines[0]
+                      const content = lines.slice(1).join('\n').trim()
                       
                       return (
                         <div key={index} className="mb-4">
-                          <p className="text-[#333333] font-bold text-sm mb-1">{label}:</p>
-                          <p className="text-[#555555] text-base leading-[1.7]">{content}</p>
+                          <p className="text-[#333333] font-bold text-sm mb-1">{label}</p>
+                          <p className="text-[#555555] text-base leading-[1.7] whitespace-pre-line">{content}</p>
                         </div>
                       )
                     }
