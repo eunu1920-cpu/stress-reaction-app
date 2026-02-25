@@ -223,6 +223,16 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
               다시 해보기
             </button>
           </div>
+          <div className="mt-6 text-center">
+  <a
+    href="https://forms.gle/wG4f1ufFfrsoayhh6"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-block px-4 py-2 bg-black text-white rounded-lg"
+  >
+    익명 의견 남기기
+  </a>
+</div>
         </div>
       </div>
     </main>
