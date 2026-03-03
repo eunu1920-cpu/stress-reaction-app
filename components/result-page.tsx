@@ -1,81 +1,71 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  resultData,
-  bodyData,
-  cognitionData,
-  insightPools,
-} from "@/lib/result-data";
+} from '@/components/ui/accordion'
+import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
 
 interface ResultPageProps {
-  q1Answer: string;
-  q2Answer: string;
-  q3Answer: string;
-  onRestart?: () => void;
+  q1Answer: string
+  q2Answer: string
+  q3Answer: string
+  onRestart?: () => void
 }
 
-export function ResultPage({
-  q1Answer,
-  q2Answer,
-  q3Answer,
-  onRestart,
-}: ResultPageProps) {
-  const [openItem, setOpenItem] = useState("section-1");
-  const [selectedInsight, setSelectedInsight] = useState<string>("");
-  const [observationText, setObservationText] = useState<string>("");
-  const [insightText, setInsightText] = useState<string>("");
-  const [showCopyToast, setShowCopyToast] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
+export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPageProps) {
+  const [openItem, setOpenItem] = useState('section-1')
+  const [selectedInsight, setSelectedInsight] = useState<string>('')
+  const [observationText, setObservationText] = useState<string>('')
+  const [insightText, setInsightText] = useState<string>('')
+  const [showCopyToast, setShowCopyToast] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
 
-  const q2Data = resultData[q2Answer as keyof typeof resultData];
-  const q1Data = bodyData[q1Answer as keyof typeof bodyData];
-  const q3Data = cognitionData[q3Answer as keyof typeof cognitionData];
+  const q2Data = resultData[q2Answer as keyof typeof resultData]
+  const q1Data = bodyData[q1Answer as keyof typeof bodyData]
+  const q3Data = cognitionData[q3Answer as keyof typeof cognitionData]
 
-  const type = String(q2Answer).toUpperCase();
-  const cardImageSrc = `/character-${type}.jpg`;
+  const type = String(q2Answer).toUpperCase()
+  const cardImageSrc = `/character-${type}.jpg`
 
   // 🔥 인사이트 랜덤
   useEffect(() => {
-    const insights = insightPools[q2Answer as keyof typeof insightPools];
+    const insights = insightPools[q2Answer as keyof typeof insightPools]
     if (insights && insights.length > 0) {
-      const randomIndex = Math.floor(Math.random() * insights.length);
-      const fullInsight = insights[randomIndex];
-      setSelectedInsight(fullInsight);
+      const randomIndex = Math.floor(Math.random() * insights.length)
+      const fullInsight = insights[randomIndex]
+      setSelectedInsight(fullInsight)
 
-      const parts = fullInsight.split("통찰:");
+      const parts = fullInsight.split('통찰:')
       if (parts.length === 2) {
-        setObservationText(parts[0].replace("관찰:", "").trim());
-        setInsightText(parts[1].trim());
+        setObservationText(parts[0].replace('관찰:', '').trim())
+        setInsightText(parts[1].trim())
       }
     }
-  }, [q2Answer]);
+  }, [q2Answer])
 
   // 🔥 Kakao SDK init
   useEffect(() => {
-    if (typeof window !== "undefined" && window.Kakao) {
+    if (typeof window !== 'undefined' && window.Kakao) {
       if (!window.Kakao.isInitialized()) {
-        window.Kakao.init("516d94cf545525bb2d00a935ed4a583d");
+        window.Kakao.init('516d94cf545525bb2d00a935ed4a583d')
       }
     }
-  }, []);
+  }, [])
 
   // 🔥 카카오 공유
   const shareKakao = () => {
-    if (typeof window === "undefined") return;
-    if (!window.Kakao) return;
-    if (!window.Kakao.isInitialized()) return;
+    if (typeof window === 'undefined') return
+    if (!window.Kakao) return
+    if (!window.Kakao.isInitialized()) return
 
     window.Kakao.Share.sendDefault({
-      objectType: "feed",
+      objectType: 'feed',
       content: {
-        title: "스트레스 반응 구조 테스트",
+        title: '스트레스 반응 구조 테스트',
         description: q2Data.oneLine,
         imageUrl: `https://stress-reaction-app-fn4y.vercel.app/character-${type}.jpg`,
         link: {
@@ -85,22 +75,22 @@ export function ResultPage({
       },
       buttons: [
         {
-          title: "테스트 다시하기",
+          title: '테스트 다시하기',
           link: {
             mobileWebUrl: `https://stress-reaction-app-fn4y.vercel.app/`,
             webUrl: `https://stress-reaction-app-fn4y.vercel.app/`,
           },
         },
       ],
-    });
-  };
+    })
+  }
 
   if (!q2Data || !q1Data || !q3Data) {
     return (
       <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
         <p>데이터를 불러올 수 없습니다.</p>
       </main>
-    );
+    )
   }
 
   return (
@@ -111,8 +101,11 @@ export function ResultPage({
         </h1>
 
         <div className="bg-white rounded-[18px] shadow-sm p-8">
-          <h2 className="text-2xl font-bold mb-6">{q2Data.oneLine}</h2>
+          <h2 className="text-2xl font-bold mb-6">
+            {q2Data.oneLine}
+          </h2>
 
+          {observationText && insightText && (
             <div className="bg-[#E8E2FF] border-l-4 border-[#8E7CFF] rounded-2xl p-5 mb-6">
               <p className="font-bold text-sm mb-1">관찰</p>
               <p className="mb-3">{observationText}</p>
@@ -154,7 +147,9 @@ export function ResultPage({
 
             <AccordionItem value="section-6">
               <AccordionTrigger>다층 해석</AccordionTrigger>
-              <AccordionContent>{q2Data.multiLayer}</AccordionContent>
+              <AccordionContent>
+                {q2Data.multiLayer}
+              </AccordionContent>
             </AccordionItem>
           </Accordion>
         </div>
@@ -195,5 +190,5 @@ export function ResultPage({
         </div>
       )}
     </main>
-  );
+  )
 }
