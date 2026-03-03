@@ -113,7 +113,6 @@ export function ResultPage({
         <div className="bg-white rounded-[18px] shadow-sm p-8">
           <h2 className="text-2xl font-bold mb-6">{q2Data.oneLine}</h2>
 
-          {observationText && insightText && (
             <div className="bg-[#E8E2FF] border-l-4 border-[#8E7CFF] rounded-2xl p-5 mb-6">
               <p className="font-bold text-sm mb-1">관찰</p>
               <p className="mb-3">{observationText}</p>
