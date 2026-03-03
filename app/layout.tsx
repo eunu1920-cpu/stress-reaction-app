@@ -10,24 +10,6 @@ const _geistMono = Geist_Mono({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: '스트레스 반응구조 확인',
   description: '스트레스 상황에서 당신은 어떻게 반응하나요?',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
 }
 
 export default function RootLayout({
@@ -36,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <head>
         {/* Google Analytics */}
         <Script
@@ -51,7 +33,23 @@ export default function RootLayout({
             gtag('config', 'G-1EKMW12QYG');
           `}
         </Script>
+
+        {/* 🔥 카카오 SDK 추가 */}
+        <Script
+          src="https://developers.kakao.com/sdk/js/kakao.js"
+          strategy="afterInteractive"
+        />
+
+        {/* 🔥 카카오 초기화 */}
+        <Script id="kakao-init" strategy="afterInteractive">
+          {`
+            if (window.Kakao && !window.Kakao.isInitialized()) {
+              window.Kakao.init("516d94cf545525bb2d00a935ed4a583d");
+            }
+          `}
+        </Script>
       </head>
+
       <body className="font-sans antialiased">
         {children}
         <Analytics />
