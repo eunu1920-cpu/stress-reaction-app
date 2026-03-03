@@ -1,21 +1,21 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import Script from 'next/script'
-import './globals.css'
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import Script from "next/script";
+import "./globals.css";
 
-const _geist = Geist({ subsets: ['latin'] })
-const _geistMono = Geist_Mono({ subsets: ['latin'] })
+const _geist = Geist({ subsets: ["latin"] });
+const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: '스트레스 반응구조 확인',
-  description: '스트레스 상황에서 당신은 어떻게 반응하나요?',
-}
+  title: "스트레스 반응구조 확인",
+  description: "스트레스 상황에서 당신은 어떻게 반응하나요?",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="ko">
@@ -55,5 +55,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
+  );
 }
