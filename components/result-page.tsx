@@ -147,22 +147,39 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
 
             <AccordionItem value="section-6">
               <AccordionTrigger>다층 해석</AccordionTrigger>
-              <AccordionContent>
-                {q2Data.multiLayer}
+              <AccordionContent className="space-y-3">
+              {q2Data.multiLayer.split("\n\n").map((block, i) => {
+                const parts = block.split(":")
+
+                return (
+                  <p key={i} className="leading-relaxed">
+                    <strong>{parts[0]}:</strong> {parts.slice(1).join(":")}
+                  </p>
+                )
+              })}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 text-center">
+         <div className="flex justify-center gap-4 flex-wrap">
+
           <button
             onClick={() => setIsShareOpen(true)}
             className="px-8 py-3 bg-[#8E7CFF] text-white rounded-xl"
           >
             결과 공유 · 저장하기
           </button>
+
+          <button
+            onClick={onRestart}
+            className="px-6 py-3 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl"
+          >
+            다시하기
+          </button>
+         </div>
         </div>
-      </div>
 
       {isShareOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -181,14 +198,27 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
             <img src={cardImageSrc} className="rounded-xl mb-4" />
 
             <button
-              onClick={shareKakao}
-              className="w-full py-3 bg-yellow-400 rounded-xl font-medium"
+              onClick={() => {
+              const link = document.createElement("a")
+             link.href = cardImageSrc
+             link.download = "stress-card.jpg"
+             link.click()
+            }}
+              className="w-full py-3 bg-[#8E7CFF] text-white rounded-xl font-medium mb-3"
             >
+              이미지 카드 저장하기
+              </button>
+
+              <button
+             onClick={shareKakao}
+             className="w-full py-3 bg-yellow-400 rounded-xl font-medium"
+             >
               카카오로 공유하기
             </button>
           </div>
         </div>
       )}
+      </div>
     </main>
   )
 }
