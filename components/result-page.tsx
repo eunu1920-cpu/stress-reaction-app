@@ -219,6 +219,18 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
         </div>
       )}
       </div>
+      <div style={{marginTop:"20px", textAlign:"center"}}>
+
+
+<a 
+href="https://forms.gle/7UNYNXfWnVPjJpws8"
+target="_blank"
+style={{color:"#2563eb", fontWeight:"bold"}}
+>
+👉 다음 자기관찰 주제 투표하기(1분)
+</a>
+
+</div>
     </main>
   )
 }
