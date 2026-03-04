@@ -28,7 +28,7 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
   const q1Data = bodyData[q1Answer as keyof typeof bodyData]
   const q3Data = cognitionData[q3Answer as keyof typeof cognitionData]
 
-  const type = `S${q2Answer}`
+  const type = String(q2Answer).toUpperCase()
   const cardImageSrc = `/character-${type}.jpg`
 
   // 🔥 인사이트 랜덤
