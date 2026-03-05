@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Accordion,
   AccordionContent,
@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
+import { appendHistory, createRecord } from '@/lib/history-storage'
 
 interface ResultPageProps {
   q1Answer: string
@@ -23,6 +24,7 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
   const [insightText, setInsightText] = useState<string>('')
   const [showCopyToast, setShowCopyToast] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const lastSavedSignatureRef = useRef<string | null>(null)
 
   const q2Data = resultData[q2Answer as keyof typeof resultData]
   const q1Data = bodyData[q1Answer as keyof typeof bodyData]
@@ -30,6 +32,26 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
 
   const type = String(q2Answer).toUpperCase()
   const cardImageSrc = `/character-${type}.jpg`
+
+  // 🔥 결과 자동 저장 (localStorage) - 동일 결과 중복 저장 방지
+  useEffect(() => {
+    if (!q1Answer || !q2Answer || !q3Answer) return
+    if (!q2Data || !q1Data || !q3Data) return
+
+    const signature = `${q1Answer}|${q2Answer}|${q3Answer}`
+    if (lastSavedSignatureRef.current === signature) return
+    lastSavedSignatureRef.current = signature
+
+    const record = createRecord({
+      q1: q1Answer,
+      q2: q2Answer,
+      q3: q3Answer,
+      resultType: type,
+      summary: q2Data.oneLine,
+    })
+
+    appendHistory(record)
+  }, [q1Answer, q2Answer, q3Answer, q2Data, q1Data, q3Data, type])
 
   // 🔥 인사이트 랜덤
   useEffect(() => {
