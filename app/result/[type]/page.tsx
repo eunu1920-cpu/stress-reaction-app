@@ -1,5 +1,13 @@
 import { Metadata } from "next"
 import Link from "next/link"
+import { notFound } from "next/navigation"
+import { resultData } from "@/lib/result-data"
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion"
 
 type Props = {
   params: { type: string }
@@ -8,7 +16,7 @@ type Props = {
 const baseUrl = "https://stress-reaction-app-fn4y.vercel.app"
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { type } = params
+  const type = params.type.toUpperCase()
 
   const imageUrl = `${baseUrl}/character-${type}.jpg`
   const pageUrl = `${baseUrl}/result/${type}`
@@ -44,45 +52,67 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function ResultPage({ params }: Props) {
-  const { type } = params
+  const type = params.type.toUpperCase()
+  const q2Data = resultData[type as keyof typeof resultData]
+
+  if (!q2Data) {
+    notFound()
+  }
+
+  const multiLayerBlocks = q2Data.multiLayer.split("\n\n")
 
   return (
-    <div style={{ padding: "40px", textAlign: "center" }}>
-      <h1 style={{ fontSize: "28px", fontWeight: "bold" }}>
-        당신의 스트레스 반응 구조
-      </h1>
+    <main className="min-h-screen bg-[#F5F3FA] py-12 px-6">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-center mb-8">
+          당신의 스트레스 반응 구조
+        </h1>
 
-      <img
-        src={`/character-${type}.jpg`}
-        alt="결과 카드"
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          margin: "30px auto",
-          borderRadius: "16px",
-        }}
-      />
+        <div className="bg-white rounded-[18px] shadow-sm p-8">
+          <h2 className="text-2xl font-bold mb-6">
+            {q2Data.oneLine}
+          </h2>
 
-      <p style={{ marginTop: "20px", color: "#666" }}>
-        친구에게 공유해서 같이 해보세요 🙂
-      </p>
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue="section-1"
+          >
+            <AccordionItem value="section-1">
+              <AccordionTrigger>촉발 환경</AccordionTrigger>
+              <AccordionContent>{q2Data.trigger}</AccordionContent>
+            </AccordionItem>
 
-      <Link href="/">
-        <button
-          style={{
-            marginTop: "24px",
-            padding: "14px 24px",
-            background: "#8E7CFF",
-            color: "white",
-            border: "none",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontSize: "16px",
-          }}
-        >
-          테스트 시작하기
-        </button>
-      </Link>
-    </div>
+            <AccordionItem value="section-2">
+              <AccordionTrigger>사고 반응 구조와 원인</AccordionTrigger>
+              <AccordionContent>{q2Data.thinking}</AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="section-3">
+              <AccordionTrigger>다층 해석</AccordionTrigger>
+              <AccordionContent className="space-y-3">
+                {multiLayerBlocks.map((block, i) => {
+                  const parts = block.split(":")
+                  return (
+                    <p key={i} className="leading-relaxed">
+                      <strong>{parts[0]}:</strong>{" "}
+                      {parts.slice(1).join(":")}
+                    </p>
+                  )
+                })}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link href="/">
+            <button className="px-6 py-3 bg-[#8E7CFF] text-white rounded-xl text-base font-medium hover:bg-[#7D6BEE] transition-colors">
+              테스트 다시하기
+            </button>
+          </Link>
+        </div>
+      </div>
+    </main>
   )
 }
