@@ -8,7 +8,8 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
-import { appendHistory, createRecord } from '@/lib/history-storage'
+import { appendHistory, createRecord, getHistory, setHistory } from '@/lib/history-storage'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ResultPageProps {
   q1Answer: string
@@ -24,6 +25,8 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
   const [insightText, setInsightText] = useState<string>('')
   const [showCopyToast, setShowCopyToast] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [memo, setMemo] = useState('')
+  const [memoSaved, setMemoSaved] = useState(false)
   const lastSavedSignatureRef = useRef<string | null>(null)
 
   const q2Data = resultData[q2Answer as keyof typeof resultData]
@@ -107,6 +110,27 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
     })
   }
 
+  const handleSaveMemo = () => {
+    const prev = getHistory()
+    if (prev.length > 0) {
+      const next = [...prev]
+      const last = next[next.length - 1]
+      next[next.length - 1] = { ...last, memo: memo.trim() || undefined }
+      setHistory(next)
+    } else {
+      const record = createRecord({
+        q1: q1Answer,
+        q2: q2Answer,
+        q3: q3Answer,
+        resultType: type,
+        summary: q2Data.oneLine,
+        memo: memo.trim() || undefined,
+      })
+      appendHistory(record)
+    }
+    setMemoSaved(true)
+  }
+
   if (!q2Data || !q1Data || !q3Data) {
     return (
       <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
@@ -182,6 +206,32 @@ export function ResultPage({ q1Answer, q2Answer, q3Answer, onRestart }: ResultPa
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          <section className="mt-6">
+            <h3 className="text-lg font-semibold mb-3">오늘 상황 기록하기</h3>
+            <Textarea
+              placeholder="최근 스트레스 상황을 한두 문장으로 기록해보세요."
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              className="min-h-[80px] resize-none"
+            />
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={handleSaveMemo}
+                className="px-6 py-3 bg-[#8E7CFF] text-white rounded-xl text-base font-medium hover:bg-[#7D6BEE] transition-colors"
+              >
+                메모 저장
+              </button>
+            </div>
+            {memoSaved && (
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                메모가 저장되었습니다.
+                <br />
+                기록이 쌓이면 추후 AI 패턴 분석 기능을 이용할 수 있어요.
+              </p>
+            )}
+          </section>
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 text-center">

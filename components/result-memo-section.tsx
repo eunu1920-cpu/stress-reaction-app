@@ -24,12 +24,21 @@ export function ResultMemoSection({ resultType, summary }: Props) {
       memo: memo.trim() || undefined,
     })
     appendHistory(record)
+    setMemo("")
     setSaved(true)
   }
 
   return (
     <section className="mt-6">
       <h3 className="text-lg font-semibold mb-3">오늘 상황 기록하기</h3>
+      <p className="text-sm text-muted-foreground mb-2">
+        오늘의 스트레스 상황을 한두 문장으로 기록해보세요.
+      </p>
+      <p className="text-sm text-muted-foreground mb-3 whitespace-pre-line">
+        이 기록이 쌓이면
+        나의 스트레스 패턴을
+        AI가 분석할 수 있습니다.
+      </p>
       <Textarea
         placeholder="최근 스트레스 상황을 한두 문장으로 기록해보세요."
         value={memo}
@@ -47,9 +56,9 @@ export function ResultMemoSection({ resultType, summary }: Props) {
       </div>
       {saved && (
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          메모가 저장되었습니다.
+          저장되었습니다.
           <br />
-          기록이 쌓이면 추후 AI 패턴 분석 기능을 이용할 수 있어요.
+          기록은 히스토리에서 확인할 수 있습니다.
         </p>
       )}
     </section>
