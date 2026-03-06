@@ -12,6 +12,7 @@ export type ObservationRecord = {
   resultType: string
   answers: ObservationAnswers
   summary: string
+  memo?: string
 }
 
 // localStorage is only available on the client.
@@ -67,11 +68,12 @@ export function createRecord(params: {
   summary: string
   date?: Date
   resultType?: string
+  memo?: string
 }): ObservationRecord {
   const date = params.date ?? new Date()
   const resultType = params.resultType ?? params.q2
 
-  return {
+  const record: ObservationRecord = {
     id: generateId(),
     date: date.toISOString(),
     resultType,
@@ -82,5 +84,7 @@ export function createRecord(params: {
     },
     summary: params.summary,
   }
+  if (params.memo !== undefined) record.memo = params.memo
+  return record
 }
 

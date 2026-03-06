@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion"
+import { ResultMemoSection } from "@/components/result-memo-section"
 
 type ResultParams = { type: string }
 
@@ -134,6 +135,8 @@ export default async function ResultPage({ params }: Props) {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          <ResultMemoSection resultType={type} summary={q2Data.oneLine} />
         </div>
 
         <div className="mt-8 text-center">
