@@ -50,8 +50,13 @@ export function setHistory(next: ObservationRecord[]) {
 }
 
 export function appendHistory(entry: ObservationRecord) {
+  const normalized: ObservationRecord = {
+    ...entry,
+    resultType: entry.resultType.toUpperCase(),
+  }
+
   const prev = getHistory()
-  const next = [...prev, entry]
+  const next = [...prev, normalized]
   setHistory(next)
 }
 

@@ -61,8 +61,9 @@ export default function HistoryPage() {
           <div className="flex flex-col gap-4">
             {history.map((record) => {
               const handleClick = () => {
-                if (!record.resultType) return
-                router.push(`/result/${record.resultType}`)
+                const type = (record.resultType || '').toUpperCase()
+                if (!type) return
+                router.push(`/result/${type}`)
               }
 
               const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {

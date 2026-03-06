@@ -9,17 +9,20 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion"
 
+type ResultParams = { type: string }
+
 type Props = {
-  params: { type: string }
+  params: Promise<ResultParams>
 }
 
 const baseUrl = "https://stress-reaction-app-fn4y.vercel.app"
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const type = params.type.toUpperCase()
+  const { type: rawType } = await params
+  const type = rawType ? rawType.toUpperCase() : null
 
-  const imageUrl = `${baseUrl}/character-${type}.jpg`
-  const pageUrl = `${baseUrl}/result/${type}`
+  const imageUrl = type ? `${baseUrl}/character-${type}.jpg` : undefined
+  const pageUrl = type ? `${baseUrl}/result/${type}` : `${baseUrl}/`
 
   return {
     title: "스트레스 반응 구조 테스트",
@@ -32,27 +35,55 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: "너도 해봐!",
       url: pageUrl,
       siteName: "스트레스 반응 구조",
-      images: [
-        {
-          url: imageUrl,
-          width: 800,
-          height: 800,
-          alt: "스트레스 반응 구조 카드",
-        },
-      ],
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              width: 800,
+              height: 800,
+              alt: "스트레스 반응 구조 카드",
+            },
+          ]
+        : [],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title: "스트레스 반응 구조 테스트",
       description: "너도 해봐!",
-      images: [imageUrl],
+      images: imageUrl ? [imageUrl] : [],
     },
   }
 }
 
-export default function ResultPage({ params }: Props) {
-  const type = params.type.toUpperCase()
+export default async function ResultPage({ params }: Props) {
+  const { type: rawType } = await params
+
+  if (!rawType) {
+    return (
+      <main className="min-h-screen bg-[#F5F3FA] py-12 px-6">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-bold text-center mb-8">
+            당신의 스트레스 반응 구조
+          </h1>
+
+          <div className="bg-white rounded-[18px] shadow-sm p-8 text-center">
+            <p className="text-muted-foreground">결과 타입을 확인할 수 없습니다.</p>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link href="/">
+              <button className="px-6 py-3 bg-[#8E7CFF] text-white rounded-xl text-base font-medium hover:bg-[#7D6BEE] transition-colors">
+                테스트 다시하기
+              </button>
+            </Link>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  const type = rawType.toUpperCase()
   const q2Data = resultData[type as keyof typeof resultData]
 
   if (!q2Data) {

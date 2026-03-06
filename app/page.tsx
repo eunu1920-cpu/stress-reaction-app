@@ -162,7 +162,14 @@ export default function LandingPage() {
   }
 
   if (step === 'result') {
-    return <ResultPage q1Answer={q1Answer} q2Answer={q2Answer} q3Answer={q3Answer} onRestart={handleRestart} />
+    return (
+      <ResultPage
+        q1Answer={q1Answer}
+        q2Answer={q2Answer}
+        q3Answer={q3Answer}
+        onRestart={handleRestart}
+      />
+    )
   }
 
   return null
