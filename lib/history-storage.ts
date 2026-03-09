@@ -69,37 +69,49 @@ function supabaseRowToRecord(row: SupabaseRecord): ObservationRecord {
   }
 }
 
-export async function fetchRecords(userId: string | null): Promise<ObservationRecord[]> {
-  if (!userId) return []
+export async function fetchRecords(userId?: string | null): Promise<ObservationRecord[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  const authUserId = user?.id ?? userId
+  if (!authUserId) return []
 
   const { data: rows, error } = await supabase
     .from('records')
     .select('*')
-    .eq('user_id', userId)
+    .eq('user_id', authUserId)
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('[fetchRecords] Supabase error:', error.message, { code: error.code, userId })
+    console.error('[fetchRecords] Supabase error:', error.message, { code: error.code, userId: authUserId })
     return []
   }
 
   return (rows ?? []).map((r) => supabaseRowToRecord(r as SupabaseRecord))
 }
 
-export async function deleteRecord(userId: string, recordId: string): Promise<void> {
-  await supabase.from('records').delete().eq('id', recordId).eq('user_id', userId)
+export async function deleteRecord(recordId: string): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { error } = await supabase
+    .from('records')
+    .delete()
+    .eq('id', recordId)
+    .eq('user_id', user.id)
+  return !error
 }
 
 export async function updateRecordContent(
-  userId: string,
   recordId: string,
   content: string
 ): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
   const { error } = await supabase
     .from('records')
     .update({ content })
     .eq('id', recordId)
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
   return !error
 }
 

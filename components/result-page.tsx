@@ -118,7 +118,7 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
       (r) => (r.resultType || '').toUpperCase() === typeUpper
     )
     if (match) {
-      await updateRecordContent(user.id, match.id, memo.trim() || '')
+      await updateRecordContent(match.id, memo.trim() || '')
     } else {
       await saveRecord({
         userId: user.id,

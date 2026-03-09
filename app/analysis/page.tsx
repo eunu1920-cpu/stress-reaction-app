@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { fetchRecords, type ObservationRecord } from '@/lib/history-storage'
+import { fetchLatestAnalysis, saveAnalysis } from '@/lib/analysis-storage'
 import { useAuth } from '@/lib/auth-context'
 import {
   Accordion,
@@ -122,17 +123,25 @@ const innerPlaceholderData: { subject: string; value: number }[] = [
 
 const PLACEHOLDER_DOMAIN_MAX = 4
 
+function formatDateShort(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
 export default function AnalysisPage() {
   const { user } = useAuth()
   const [data, setData] = useState<{ subject: string; value: number }[]>(initialChartData)
   const [records, setRecords] = useState<ObservationRecord[]>([])
   const [analysis, setAnalysis] = useState<string | null>(null)
+  const [analysisPeriod, setAnalysisPeriod] = useState<{ start: string; end: string } | null>(null)
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [recordsAtLastAnalysis, setRecordsAtLastAnalysis] = useState<number>(0)
 
   useEffect(() => {
     let cancelled = false
-    fetchRecords(user?.id ?? null).then((hist) => {
+    fetchRecords().then((hist) => {
       if (!cancelled) {
         setRecords(hist)
         setData(buildChartDataFromRecords(hist))
@@ -141,32 +150,83 @@ export default function AnalysisPage() {
     return () => { cancelled = true }
   }, [user?.id])
 
-  const fetchAnalysis = useCallback(async () => {
-    if (records.length < 7) return
-    setAnalysisLoading(true)
-    setAnalysisError(null)
-    try {
-      const apiRecords = recordsToApiFormat(records)
-      const res = await fetch('/api/analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: apiRecords }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || '분석 요청 실패')
-      setAnalysis(json.analysis ?? '')
-    } catch (err) {
-      setAnalysisError(err instanceof Error ? err.message : '분석을 불러올 수 없습니다.')
-    } finally {
-      setAnalysisLoading(false)
-    }
-  }, [records])
+  useEffect(() => {
+    if (!user?.id) return
+
+    let cancelled = false
+    fetchLatestAnalysis(user.id).then((stored) => {
+      if (!cancelled && stored) {
+        setAnalysis(stored.analysis)
+        setAnalysisPeriod({ start: stored.periodStart, end: stored.periodEnd })
+        setRecordsAtLastAnalysis(stored.recordCount)
+      }
+    })
+    return () => { cancelled = true }
+  }, [user?.id])
+
+  const fetchAnalysis = useCallback(
+    async (previousAnalysisText?: string) => {
+      if (records.length < 7 || !user?.id) return
+
+      const batch = records.slice(0, 7)
+      const apiRecords = recordsToApiFormat(batch)
+      const oldestDate = batch[batch.length - 1]?.date ?? ''
+      const newestDate = batch[0]?.date ?? ''
+
+      setAnalysisLoading(true)
+      setAnalysisError(null)
+      try {
+        const res = await fetch('/api/analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            records: apiRecords,
+            previousAnalysis: previousAnalysisText ?? undefined,
+          }),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || '분석 요청 실패')
+        const text = json.analysis ?? ''
+        setAnalysis(text)
+        setAnalysisPeriod({ start: oldestDate, end: newestDate })
+        setRecordsAtLastAnalysis(records.length)
+        await saveAnalysis(user.id, {
+          recordCount: records.length,
+          analysis: text,
+          periodStart: oldestDate,
+          periodEnd: newestDate,
+        })
+      } catch (err) {
+        setAnalysisError(err instanceof Error ? err.message : '분석을 불러올 수 없습니다.')
+      } finally {
+        setAnalysisLoading(false)
+      }
+    },
+    [records, user?.id]
+  )
 
   useEffect(() => {
-    if (records.length >= 7 && !analysis && !analysisLoading && !analysisError) {
-      void fetchAnalysis()
-    }
-  }, [records, analysis, analysisLoading, analysisError, fetchAnalysis])
+    if (records.length < 7 || !user?.id || analysisLoading) return
+
+    let cancelled = false
+    fetchLatestAnalysis(user.id).then((stored) => {
+      if (cancelled) return
+      const hasStoredAnalysis = stored !== null
+      const newRecordsSinceLast = hasStoredAnalysis
+        ? records.length - stored.recordCount
+        : 7
+
+      if (!hasStoredAnalysis) {
+        void fetchAnalysis()
+        return
+      }
+
+      if (newRecordsSinceLast >= 7) {
+        void fetchAnalysis(stored.analysis)
+      }
+    })
+    return () => { cancelled = true }
+  }, [records, user?.id, analysisLoading, fetchAnalysis])
 
   const domainMax = useMemo(() => {
     const max = Math.max(1, ...data.map((d) => d.value))
@@ -174,7 +234,19 @@ export default function AnalysisPage() {
   }, [data])
 
   const hasData = data.some((d) => d.value > 0)
-  const hasEnoughRecords = records.length >= 7
+  const hasEnoughForFirst = records.length >= 7
+  const newRecordsSinceLast = analysis
+    ? Math.max(0, records.length - recordsAtLastAnalysis)
+    : 0
+  const recordsNeededForNext = Math.max(0, 7 - newRecordsSinceLast)
+  const progressMessage =
+    !hasEnoughForFirst
+      ? records.length === 0
+        ? '새 기록 7개가 쌓이면 다음 분석이 생성됩니다.'
+        : `새 기록 ${7 - records.length}개가 더 쌓이면 다음 분석이 생성됩니다.`
+      : recordsNeededForNext === 0
+        ? '새 기록 7개가 쌓이면 다음 분석이 생성됩니다.'
+        : `새 기록 ${recordsNeededForNext}개가 더 쌓이면 다음 분석이 생성됩니다.`
 
   return (
     <RequireAuth>
@@ -195,11 +267,18 @@ export default function AnalysisPage() {
           <h2 className="text-sm font-semibold text-[#333333] px-6 py-4 border-b border-[#E8E2FF]">
             AI 분석
           </h2>
-          <div className="px-6 py-6">
-            {!hasEnoughRecords ? (
-              <p className="text-sm text-[#666666] leading-relaxed text-center">
-                7일 이상 기록하면 AI 분석이 제공됩니다.
-              </p>
+          <div className="px-6 py-6 space-y-4">
+            {!hasEnoughForFirst ? (
+              <>
+                <p className="text-sm text-[#666666] leading-relaxed text-center">
+                  {records.length === 0
+                    ? '7개 이상 기록하면 첫 AI 분석이 생성됩니다.'
+                    : `현재 ${records.length}개 기록. 7개가 쌓이면 첫 분석이 생성됩니다.`}
+                </p>
+                <p className="text-sm text-[#8E7CFF] font-medium text-center">
+                  {progressMessage}
+                </p>
+              </>
             ) : analysisLoading ? (
               <p className="text-sm text-[#666666] leading-relaxed text-center">
                 분석 중...
@@ -209,11 +288,21 @@ export default function AnalysisPage() {
                 {analysisError}
               </p>
             ) : analysis ? (
-              <div className="rounded-lg bg-[#F5F3FA] p-6 min-w-0">
-                <p className="text-sm text-[#666666] leading-relaxed whitespace-pre-line">
-                  {analysis}
+              <>
+                {analysisPeriod && (
+                  <p className="text-xs text-[#777777] text-center">
+                    분석 기간: {formatDateShort(analysisPeriod.start)} ~ {formatDateShort(analysisPeriod.end)} (최근 7개 기록)
+                  </p>
+                )}
+                <div className="rounded-lg bg-[#F5F3FA] p-6 min-w-0">
+                  <p className="text-sm text-[#666666] leading-relaxed whitespace-pre-line">
+                    {analysis}
+                  </p>
+                </div>
+                <p className="text-sm text-[#8E7CFF] font-medium text-center">
+                  {progressMessage}
                 </p>
-              </div>
+              </>
             ) : null}
           </div>
         </section>
