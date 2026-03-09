@@ -1,103 +1,448 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ObservationRecord } from '@/lib/history-storage'
-import { getHistory } from '@/lib/history-storage'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card'
+import { fetchRecords, isManualRecord } from '@/lib/history-storage'
+import { useAuth } from '@/lib/auth-context'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { RequireAuth } from '@/components/require-auth'
 
-function formatDate(dateString: string) {
+const VIEW_TABS = [
+  { id: 'timeline', label: '타임라인' },
+  { id: 'calendar', label: '캘린더' },
+] as const
+
+const CATEGORIES = [
+  { id: 'all', label: '전체' },
+  { id: 'stress', label: '스트레스' },
+  { id: 'relation', label: '관계' },
+  { id: 'inner', label: '자기고민' },
+] as const
+
+const CATEGORY_LABELS: Record<string, string> = {
+  stress: '스트레스 상황',
+  relation: '인간관계',
+  inner: '자기고민',
+}
+
+const REACTION_LABELS: Record<string, string> = {
+  tense: '긴장',
+  overthink: '생각 많아짐',
+  avoid: '피하고 싶음',
+  solve: '해결하려 함',
+  other: '기타',
+}
+
+type ViewTabId = (typeof VIEW_TABS)[number]['id']
+type CategoryId = (typeof CATEGORIES)[number]['id']
+
+const VALID_TEST_PATTERNS = new Set([
+  'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8',
+  'G1', 'G2', 'G3', 'G4', 'T1', 'T2', 'T3', 'T4',
+  'R1', 'R2', 'C1', 'C2', 'C3',
+])
+
+function getCategory(resultType: string): CategoryId {
+  const t = (resultType || '').toUpperCase()
+  if (t === 'QR') return 'inner'
+  const first = t.charAt(0)
+  if (first === 'S') return 'stress'
+  if (first === 'R') return 'relation'
+  if (first === 'T') return 'inner'
+  return 'stress'
+}
+
+function formatDateShort(dateString: string) {
   const d = new Date(dateString)
   if (Number.isNaN(d.getTime())) return dateString
   const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${yyyy}.${mm}.${dd} ${hh}:${mi}`
+  return `${yyyy}.${mm}.${dd}`
+}
+
+function parseJsonArray(val: string): string[] | null {
+  try {
+    if (typeof val !== 'string') return null
+    if (val.startsWith('[')) {
+      const parsed = JSON.parse(val) as unknown
+      return Array.isArray(parsed) ? parsed.map(String) : null
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+function formatTagsForDisplay(tags: string[] | null | undefined): string {
+  if (!tags || !Array.isArray(tags)) return ''
+  const filtered = tags.filter((t) => t != null && String(t).trim() !== '')
+  return filtered.join(', ')
+}
+
+function getSituationLabel(record: ObservationRecord): string {
+  if (record.resultType === 'QR' && record.answers?.q1) {
+    const arr = parseJsonArray(record.answers.q1)
+    const tagsText = formatTagsForDisplay(arr)
+    if (tagsText) return tagsText
+    const map: Record<string, string> = {
+      stress: '스트레스 상황',
+      relation: '인간관계',
+      inner: '자기고민',
+      custom: '직접 입력',
+    }
+    const fallback = map[record.answers.q1] ?? record.answers.q1
+    return fallback === '[]' || fallback === '""' ? '' : fallback
+  }
+  return CATEGORY_LABELS[getCategory(record.resultType)] ?? '스트레스 상황'
+}
+
+function getReactionLabel(record: ObservationRecord): string {
+  if (record.resultType === 'QR') {
+    const q2 = parseJsonArray(record.answers?.q2 ?? '')
+    const q3 = parseJsonArray(record.answers?.q3 ?? '')
+    const tags2 = formatTagsForDisplay(q2)
+    const tags3 = formatTagsForDisplay(q3)
+    const combined = [tags2, tags3].filter(Boolean).join(', ')
+    if (combined) return combined
+    if (record.answers?.q3 && REACTION_LABELS[record.answers.q3]) {
+      return REACTION_LABELS[record.answers.q3]
+    }
+    const parts = (record.summary || '').split(' · ')
+    const fromSummary = parts[1]?.trim() || parts[0]?.trim()
+    return fromSummary || ''
+  }
+  return record.summary || '-'
+}
+
+function getDaysInMonth(year: number, month: number) {
+  const first = new Date(year, month, 1)
+  const last = new Date(year, month + 1, 0)
+  const days: (number | null)[] = []
+  const firstDay = first.getDay()
+  for (let i = 0; i < firstDay; i++) days.push(null)
+  for (let d = 1; d <= last.getDate(); d++) days.push(d)
+  return days
+}
+
+function RecordCard({
+  record,
+  onClick,
+}: {
+  record: ObservationRecord
+  onClick: () => void
+}) {
+  const type = (record.resultType || '').toUpperCase()
+  const situationLabel = getSituationLabel(record)
+  const reactionLabel = getReactionLabel(record)
+  const isManual = isManualRecord(record)
+  const icon = isManual ? '✍' : '🧪'
+
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md p-4 gap-0 rounded-xl border border-[#E8E2FF] h-[140px] flex flex-col min-h-[140px] overflow-hidden"
+    >
+      <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <span className="text-base" title={isManual ? '오늘의 관찰' : '테스트 결과'}>
+          {icon}
+        </span>
+        <span className="text-sm font-medium text-[#333333]">
+          {formatDateShort(record.date)}
+        </span>
+        <span className="inline-flex items-center rounded-md bg-[#E8E2FF] px-2 py-0.5 text-xs font-medium text-[#5a4bb5]">
+          [{type}]
+        </span>
+      </div>
+      <p className="text-sm text-[#555555] leading-relaxed mt-1.5 line-clamp-1 shrink-0">
+        {situationLabel || ''}
+      </p>
+      <p className="text-xs text-[#777777] line-clamp-1 shrink-0">
+        {reactionLabel || ''}
+      </p>
+      <div className="pt-2 mt-auto border-t border-border/50 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <p
+          className="text-xs text-gray-600 leading-relaxed min-h-0 overflow-hidden text-ellipsis line-clamp-2 break-words"
+          title={record.memo?.trim() || undefined}
+        >
+          {record.memo?.trim() ?? ''}
+        </p>
+      </div>
+    </Card>
+  )
 }
 
 export default function HistoryPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [history, setHistory] = useState<ObservationRecord[] | null>(null)
+  const [viewTab, setViewTab] = useState<ViewTabId>('timeline')
+  const [category, setCategory] = useState<CategoryId>('all')
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   useEffect(() => {
-    const data = getHistory()
-    const sorted = data
-      .slice()
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    setHistory(sorted)
-  }, [])
+    let cancelled = false
+    const load = async () => {
+      const records = await fetchRecords(user?.id ?? null)
+      const sorted = records
+        .slice()
+        .sort((a, b) => {
+          const ta = new Date(a.date).getTime()
+          const tb = new Date(b.date).getTime()
+          return tb - ta || (a.id < b.id ? 1 : -1)
+        })
+      if (!cancelled) setHistory(sorted)
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
+  const recordsByDate = useMemo(() => {
+    const map: Record<string, ObservationRecord[]> = {}
+    history?.forEach((r) => {
+      const key = r.date.slice(0, 10)
+      if (!map[key]) map[key] = []
+      map[key].push(r)
+    })
+    Object.keys(map).forEach((k) => map[k].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+    return map
+  }, [history])
+
+  const filteredHistory = useMemo(() => {
+    if (!history) return null
+    let list = history
+    if (viewTab === 'calendar' && selectedDate) {
+      list = (recordsByDate[selectedDate] ?? []).slice()
+    }
+    if (category !== 'all') {
+      list = list.filter((r) => getCategory(r.resultType) === category)
+    }
+    return list
+  }, [history, category, viewTab, selectedDate, recordsByDate])
+
+  const handleCardClick = (record: ObservationRecord) => {
+    if (isManualRecord(record)) {
+      router.push(`/record/detail/${record.id}`)
+      return
+    }
+    const type = (record.resultType || record.pattern || '').toUpperCase()
+    if (!type || !VALID_TEST_PATTERNS.has(type)) return
+    const cat = getCategory(type)
+    const testType = cat === 'inner' ? 'self' : cat
+    router.push(`/result/${testType}/${type}`)
+  }
 
   const isLoading = history === null
   const hasNoData = history !== null && history.length === 0
+  const hasNoFilteredData =
+    filteredHistory !== null && filteredHistory.length === 0 && !hasNoData
+
+  const calendarDays = getDaysInMonth(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth()
+  )
+  const monthLabel = `${calendarMonth.getFullYear()}년 ${calendarMonth.getMonth() + 1}월`
+  const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
   return (
-    <main className="min-h-screen bg-[#F5F3FA] py-12 px-6">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-semibold text-center mb-8">
-          나의 자기관찰 기록
+    <RequireAuth>
+    <main className="min-h-screen bg-[#F5F3FA] py-8 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-semibold text-center mb-2">
+          나의 반응 관찰 히스토리
         </h1>
+        <p className="text-sm text-[#555555] text-center mb-6">
+          관찰이 쌓이면 나의 반응 패턴이 보입니다.
+        </p>
+
+        {/* 보기 방식 탭 */}
+        <div className="flex justify-center gap-2 mb-4">
+          {VIEW_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setViewTab(tab.id)
+                if (tab.id !== 'calendar') setSelectedDate(null)
+              }}
+              className={cn(
+                'rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors',
+                viewTab === tab.id
+                  ? 'bg-[#8E7CFF] text-white'
+                  : 'bg-white text-[#333333] border border-[#E8E2FF] hover:bg-[#F5F3FA]'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 기록 필터 */}
+        <div className="flex flex-nowrap justify-center items-center gap-6 mb-6">
+          {CATEGORIES.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setCategory(tab.id)}
+              className={cn(
+                'text-sm transition-colors pb-1 border-b-2 border-transparent',
+                category === tab.id
+                  ? 'text-[#8E7CFF] font-semibold border-[#8E7CFF] hover:text-[#7D6BEE]'
+                  : 'text-[#6B7280] font-normal hover:text-[#4B5563]'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {isLoading && (
-          <div className="min-h-[200px] flex items-center justify-center text-muted-foreground">
+          <div className="min-h-[200px] flex items-center justify-center text-[#555555]">
             기록을 불러오는 중입니다.
           </div>
         )}
 
         {hasNoData && !isLoading && (
-          <div className="min-h-[200px] flex items-center justify-center text-muted-foreground">
+          <div className="min-h-[200px] flex items-center justify-center text-[#555555]">
             아직 기록이 없습니다.
           </div>
         )}
 
-        {history && history.length > 0 && (
-          <div className="flex flex-col gap-4">
-            {history.map((record) => {
-              const handleClick = () => {
-                const type = (record.resultType || '').toUpperCase()
-                if (!type) return
-                router.push(`/result/${type}`)
-              }
+        {/* 타임라인 */}
+        {viewTab === 'timeline' && !isLoading && !hasNoData && (
+          <>
+            {hasNoFilteredData && (
+              <div className="min-h-[120px] flex items-center justify-center text-[#555555] text-sm">
+                이 카테고리에 기록이 없습니다.
+              </div>
+            )}
+            {filteredHistory && filteredHistory.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredHistory.map((record) => (
+                  <RecordCard
+                    key={record.id}
+                    record={record}
+                    onClick={() => handleCardClick(record)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-              const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  handleClick()
-                }
-              }
-
-              return (
-                <Card
-                  key={record.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleClick}
-                  onKeyDown={handleKeyDown}
-                  className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md"
+        {/* 캘린더 */}
+        {viewTab === 'calendar' && !isLoading && !hasNoData && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF] p-6">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCalendarMonth(
+                      new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1)
+                    )
+                  }
+                  className="p-2 rounded-lg hover:bg-[#F5F3FA] text-[#333333]"
                 >
-                  <CardHeader>
-                    <CardTitle>{formatDate(record.date)}</CardTitle>
-                    <CardDescription>결과 타입: {record.resultType}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {record.summary}
-                    </p>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                  ←
+                </button>
+                <span className="text-base font-semibold text-[#333333]">
+                  {monthLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCalendarMonth(
+                      new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1)
+                    )
+                  }
+                  className="p-2 rounded-lg hover:bg-[#F5F3FA] text-[#333333]"
+                >
+                  →
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-center">
+                {weekDays.map((d) => (
+                  <div key={d} className="text-xs font-medium text-[#666666] py-1">
+                    {d}
+                  </div>
+                ))}
+                {calendarDays.map((d, i) => {
+                  if (d === null) return <div key={`empty-${i}`} />
+                  const y = calendarMonth.getFullYear()
+                  const m = calendarMonth.getMonth()
+                  const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+                  const hasRecords = (recordsByDate[key]?.length ?? 0) > 0
+                  const isSelected = selectedDate === key
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedDate(isSelected ? null : key)}
+                      className={cn(
+                        'aspect-square rounded-lg text-sm font-medium transition-colors flex flex-col items-center justify-center',
+                        isSelected
+                          ? 'bg-[#8E7CFF] text-white'
+                          : hasRecords
+                            ? 'bg-[#E8E2FF] text-[#5a4bb5] hover:bg-[#D8CCFF]'
+                            : 'text-[#333333] hover:bg-[#F5F3FA]'
+                      )}
+                    >
+                      {d}
+                      {hasRecords && (
+                        <span className="text-[10px] mt-0.5">●</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            {selectedDate && (
+              <div>
+                <h3 className="text-sm font-semibold text-[#333333] mb-3">
+                  {selectedDate.replace(/-/g, '.')} 기록
+                </h3>
+                {filteredHistory && filteredHistory.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredHistory.map((record) => (
+                      <RecordCard
+                        key={record.id}
+                        record={record}
+                        onClick={() => handleCardClick(record)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[#555555] py-4">
+                    {category !== 'all'
+                      ? '이 날짜에 해당 카테고리 기록이 없습니다.'
+                      : '이 날짜에 기록이 없습니다.'}
+                  </p>
+                )}
+              </div>
+            )}
+            {selectedDate === null && (
+              <p className="text-sm text-[#555555] text-center py-4">
+                날짜를 클릭하면 해당 날짜의 기록을 볼 수 있습니다.
+              </p>
+            )}
           </div>
         )}
       </div>
     </main>
+    </RequireAuth>
   )
 }
-
