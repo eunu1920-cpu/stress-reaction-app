@@ -97,18 +97,18 @@ export function LoginModal({
               >
                 Google 로그인
               </button>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <input
                   type="email"
                   placeholder="이메일 주소"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 rounded-lg border border-[#E8E2FF] px-3 py-2 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent"
+                  className="w-full min-w-0 rounded-lg border border-[#E8E2FF] px-3 py-2 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent"
                 />
                 <button
                   type="button"
                   onClick={handleEmailLogin}
-                  className="shrink-0 py-2 px-3 rounded-lg border border-[#E8E2FF] text-sm text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors whitespace-nowrap"
+                  className="w-full py-2 px-3 rounded-lg border border-[#E8E2FF] text-sm text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors"
                 >
                   이메일 로그인
                 </button>

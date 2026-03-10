@@ -13,6 +13,28 @@ function isKakaoTalkInAppBrowser(): boolean {
   return navigator.userAgent.toUpperCase().includes('KAKAOTALK')
 }
 
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // fallback
+  }
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    return document.execCommand('copy')
+  } finally {
+    document.body.removeChild(textarea)
+  }
+}
+
 export function KakaoInAppBrowserModal() {
   const [open, setOpen] = useState(false)
 
@@ -22,12 +44,16 @@ export function KakaoInAppBrowserModal() {
     }
   }, [])
 
-  const handleOpenInBrowser = () => {
+  const handleOpenInBrowser = async () => {
     const url = window.location.href
+    if (isKakaoTalkInAppBrowser()) {
+      location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`
+      return
+    }
     const opened = window.open(url, '_blank', 'noopener,noreferrer')
     if (!opened) {
-      navigator.clipboard?.writeText(url)
-      alert('링크를 복사했습니다. 브라우저 주소창에 붙여넣어 열어주세요.')
+      const copied = await copyToClipboard(url)
+      alert(copied ? '링크를 복사했습니다. 브라우저 주소창에 붙여넣어 열어주세요.' : '링크를 복사할 수 없습니다. 주소창에 직접 입력해주세요.')
     }
   }
 
