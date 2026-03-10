@@ -36,6 +36,16 @@ export function LoginModal({
     onOpenChange(false)
   }
 
+  const handleKakaoLogin = async () => {
+    setEmailError(null)
+    const result = await onLogin?.('kakao')
+    if (result && 'error' in result) {
+      setEmailError(result.error ?? '카카오 로그인에 실패했습니다.')
+      return
+    }
+    onOpenChange(false)
+  }
+
   const handleEmailLogin = async () => {
     const trimmed = email.trim()
     if (!trimmed) {
@@ -96,6 +106,13 @@ export function LoginModal({
                 className="w-full py-3 px-4 rounded-xl border-2 border-[#E8E2FF] text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors"
               >
                 Google 로그인
+              </button>
+              <button
+                type="button"
+                onClick={handleKakaoLogin}
+                className="w-full py-3 px-4 rounded-xl border-2 border-[#E8E2FF] text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors"
+              >
+                카카오로 로그인
               </button>
               <div className="flex gap-2">
                 <input

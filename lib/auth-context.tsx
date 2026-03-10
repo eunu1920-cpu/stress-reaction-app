@@ -96,6 +96,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null
     }
 
+    if (email === 'kakao') {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+          scopes: 'profile_nickname profile_image',
+        },
+      })
+      if (error) {
+        console.error('Auth error:', error)
+        return { error: error.message || '카카오 로그인에 실패했습니다.' }
+      }
+      return null
+    }
+
     if (email) {
       const { data, error } = await supabase.auth.signInWithOtp({ email })
       if (error) {

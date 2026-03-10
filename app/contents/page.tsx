@@ -1,21 +1,19 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ComingSoonPage } from '@/components/coming-soon-page'
 
+const VALID_SRC_VALUES = new Set(['A', 'B', 'C'])
+
 function isValidSrc(src: string | null): boolean {
   if (!src || typeof src !== 'string' || src.trim() === '') return false
-  try {
-    const url = new URL(src)
-    return url.protocol === 'https:' || url.protocol === 'http:'
-  } catch {
-    return false
-  }
+  return VALID_SRC_VALUES.has(src.trim())
 }
 
-export default function ContentsPage() {
+function ContentsPageInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isValid, setIsValid] = useState<boolean | null>(null)
@@ -51,4 +49,18 @@ export default function ContentsPage() {
   }
 
   return <ComingSoonPage />
+}
+
+export default function ContentsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
+          <p className="text-center text-[#555555]">Loading...</p>
+        </main>
+      }
+    >
+      <ContentsPageInner />
+    </Suspense>
+  )
 }
