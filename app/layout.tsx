@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
+import { AppNav } from "@/components/app-nav";
+import { Providers } from "@/components/providers";
 import "./globals.css";
-
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "스트레스 반응구조 확인",
@@ -18,8 +16,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+        />
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-1EKMW12QYG"
@@ -51,8 +53,11 @@ export default function RootLayout({
       </head>
 
       <body className="font-sans antialiased">
-        {children}
-        <Analytics />
+        <Providers>
+          <AppNav />
+          {children}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

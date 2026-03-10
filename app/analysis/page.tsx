@@ -248,13 +248,25 @@ export default function AnalysisPage() {
         ? '새 기록 7개가 쌓이면 다음 분석이 생성됩니다.'
         : `새 기록 ${recordsNeededForNext}개가 더 쌓이면 다음 분석이 생성됩니다.`
 
+  const analysisRound = recordsAtLastAnalysis >= 7 ? Math.floor(recordsAtLastAnalysis / 7) : 0
+  const roundPreviewMessages: Record<number, string> = {
+    1: '다음 분석에서는 반복되는 상황과 반응 패턴이 함께 정리됩니다.',
+    2: '다음 분석에서는 주요 트리거 상황과 감정 반응 흐름이 분석됩니다.',
+    3: '다음 분석에서는 반복되는 생각 패턴과 감정 루프가 정리됩니다.',
+    4: '다음 분석에서는 나에게 맞는 대응 전략이 제안됩니다.',
+  }
+  const roundPreviewMessage =
+    analysisRound >= 4
+      ? roundPreviewMessages[4]
+      : roundPreviewMessages[analysisRound as 1 | 2 | 3]
+
   return (
     <RequireAuth>
     <main className="min-h-screen bg-[#F5F3FA] py-8 px-6">
       <div className="mx-auto max-w-6xl">
         <header className="text-center space-y-2 mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-[#333333]">
-            나의 반응 패턴 지도
+            나의 반응 패턴
           </h1>
           <p className="text-base text-[#666666] leading-relaxed whitespace-pre-line">
             기록과 테스트가 쌓이면
@@ -291,7 +303,7 @@ export default function AnalysisPage() {
               <>
                 {analysisPeriod && (
                   <p className="text-xs text-[#777777] text-center">
-                    분석 기간: {formatDateShort(analysisPeriod.start)} ~ {formatDateShort(analysisPeriod.end)} (최근 7개 기록)
+                    {analysisRound}회차 분석 · {formatDateShort(analysisPeriod.start)} ~ {formatDateShort(analysisPeriod.end)} (최근 7개 기록)
                   </p>
                 )}
                 <div className="rounded-lg bg-[#F5F3FA] p-6 min-w-0">
@@ -299,9 +311,16 @@ export default function AnalysisPage() {
                     {analysis}
                   </p>
                 </div>
-                <p className="text-sm text-[#8E7CFF] font-medium text-center">
-                  {progressMessage}
-                </p>
+                <div className="space-y-1 text-center">
+                  <p className="text-sm text-[#8E7CFF] font-medium">
+                    {progressMessage}
+                  </p>
+                  {roundPreviewMessage && (
+                    <p className="text-sm text-[#8E7CFF] font-medium">
+                      {roundPreviewMessage}
+                    </p>
+                  )}
+                </div>
               </>
             ) : null}
           </div>
