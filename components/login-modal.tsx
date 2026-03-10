@@ -64,13 +64,13 @@ export function LoginModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-lg font-semibold text-[#333333]">
             {isSaveVariant ? '기록 저장' : '로그인이 필요합니다'}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 pt-2">
+        <div className="space-y-4 pt-2 min-h-0 overflow-y-auto flex-1">
           <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">
             {isSaveVariant
               ? '기록을 저장하려면 로그인이 필요합니다.\n로그인하면 나의 반응 패턴을 기록하고\n히스토리와 종합 분석을 확인할 수 있습니다.'
