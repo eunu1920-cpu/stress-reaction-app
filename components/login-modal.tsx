@@ -36,16 +36,6 @@ export function LoginModal({
     onOpenChange(false)
   }
 
-  const handleKakaoLogin = async () => {
-    setEmailError(null)
-    const result = await onLogin?.('kakao')
-    if (result && 'error' in result) {
-      setEmailError(result.error ?? '카카오 로그인에 실패했습니다.')
-      return
-    }
-    onOpenChange(false)
-  }
-
   const handleEmailLogin = async () => {
     const trimmed = email.trim()
     if (!trimmed) {
@@ -103,16 +93,9 @@ export function LoginModal({
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full py-3 px-4 rounded-xl border-2 border-[#E8E2FF] text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors"
+                className="w-full py-2 px-3 rounded-lg border border-[#E8E2FF] text-sm text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors"
               >
                 Google 로그인
-              </button>
-              <button
-                type="button"
-                onClick={handleKakaoLogin}
-                className="w-full py-3 px-4 rounded-xl border-2 border-[#E8E2FF] text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors"
-              >
-                카카오로 로그인
               </button>
               <div className="flex gap-2">
                 <input
@@ -120,12 +103,12 @@ export function LoginModal({
                   placeholder="이메일 주소"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 rounded-xl border-2 border-[#E8E2FF] px-4 py-3 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent"
+                  className="flex-1 rounded-lg border border-[#E8E2FF] px-3 py-2 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent"
                 />
                 <button
                   type="button"
                   onClick={handleEmailLogin}
-                  className="shrink-0 py-3 px-4 rounded-xl border-2 border-[#E8E2FF] text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors whitespace-nowrap"
+                  className="shrink-0 py-2 px-3 rounded-lg border border-[#E8E2FF] text-sm text-[#333333] font-medium hover:bg-[#F5F3FA] transition-colors whitespace-nowrap"
                 >
                   이메일 로그인
                 </button>
