@@ -10,6 +10,14 @@ import { LoginModal } from '@/components/login-modal'
 import { hasManualRecordToday } from '@/lib/daily-limits'
 
 const MAX_TAGS_PER_SECTION = 4
+const PENDING_RECORD_KEY = 'myview-pending-record'
+
+type PendingRecordData = {
+  situationTags: string[]
+  bodyReactionTags: string[]
+  behaviorTags: string[]
+  memo: string
+}
 
 const SITUATION_TAGS = [
   '시간압박',
@@ -60,22 +68,34 @@ function CheckboxGrid({
   tags,
   selected,
   onChange,
+  onInteract,
+  disabled,
 }: {
   tags: string[]
   selected: string[]
   onChange: (value: string, checked: boolean) => void
+  onInteract?: () => void
+  disabled?: boolean
 }) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (disabled && onInteract) {
+      e.preventDefault()
+      onInteract()
+    }
+  }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
       {tags.map((tag) => (
         <label
           key={tag}
+          onClick={handleClick}
           className="flex items-center gap-2 cursor-pointer text-sm text-[#333333] hover:text-[#5a4bb5]"
         >
           <input
             type="checkbox"
             checked={selected.includes(tag)}
-            onChange={(e) => onChange(tag, e.target.checked)}
+            onChange={(e) => !disabled && onChange(tag, e.target.checked)}
+            disabled={disabled}
             className="size-4 rounded border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
           />
           <span>{tag}</span>
@@ -93,6 +113,7 @@ export default function RecordPage() {
   const [behaviorTags, setBehaviorTags] = useState<string[]>([])
   const [memo, setMemo] = useState('')
   const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const [loginModalSource, setLoginModalSource] = useState<'interact' | 'save' | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [alreadyRecordedToday, setAlreadyRecordedToday] = useState<boolean | null>(null)
@@ -104,6 +125,26 @@ export default function RecordPage() {
     })
     return () => { cancelled = true }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id || alreadyRecordedToday !== false) return
+    try {
+      const raw = sessionStorage.getItem(PENDING_RECORD_KEY)
+      if (!raw) return
+      const data = JSON.parse(raw) as PendingRecordData
+      if (!data || !Array.isArray(data.situationTags) || !Array.isArray(data.bodyReactionTags) || !Array.isArray(data.behaviorTags)) return
+      sessionStorage.removeItem(PENDING_RECORD_KEY)
+      setSituationTags(data.situationTags ?? [])
+      setBodyReactionTags(data.bodyReactionTags ?? [])
+      setBehaviorTags(data.behaviorTags ?? [])
+      setMemo(data.memo ?? '')
+      setSaving(true)
+      setError(null)
+      void performSaveWithData(user.id, data, isDemoMode).finally(() => setSaving(false))
+    } catch {
+      sessionStorage.removeItem(PENDING_RECORD_KEY)
+    }
+  }, [user?.id, alreadyRecordedToday, isDemoMode])
 
   const toggleTag = (
     setter: React.Dispatch<React.SetStateAction<string[]>>,
@@ -120,29 +161,33 @@ export default function RecordPage() {
     )
   }
 
-  const performSave = async (userId: string, demoMode?: boolean) => {
+  const performSaveWithData = async (
+    userId: string,
+    data: PendingRecordData,
+    demoMode?: boolean
+  ) => {
     const summary = [
-      situationTags.join(', '),
-      bodyReactionTags.join(', '),
-      behaviorTags.join(', '),
+      data.situationTags.join(', '),
+      data.bodyReactionTags.join(', '),
+      data.behaviorTags.join(', '),
     ]
       .filter(Boolean)
       .join(' · ')
 
     const ok = await saveRecord({
       userId: demoMode ?? isDemoMode ? undefined : userId,
-      category: situationTags[0] ?? 'QR',
+      category: data.situationTags[0] ?? 'QR',
       pattern: 'manual_record',
-      situationTags,
-      bodyReactionTags,
-      behaviorTags,
-      content: memo.trim() || summary,
-      q1: JSON.stringify(situationTags),
-      q2: JSON.stringify(bodyReactionTags),
-      q3: JSON.stringify(behaviorTags),
+      situationTags: data.situationTags,
+      bodyReactionTags: data.bodyReactionTags,
+      behaviorTags: data.behaviorTags,
+      content: (data.memo ?? '').trim() || summary,
+      q1: JSON.stringify(data.situationTags),
+      q2: JSON.stringify(data.bodyReactionTags),
+      q3: JSON.stringify(data.behaviorTags),
       summary,
       resultType: 'QR',
-      memo: memo.trim() || undefined,
+      memo: (data.memo ?? '').trim() || undefined,
     })
     if (!ok) {
       if (demoMode ?? isDemoMode) {
@@ -153,6 +198,14 @@ export default function RecordPage() {
       }
     }
     router.push('/observe')
+  }
+
+  const performSave = async (userId: string, demoMode?: boolean) => {
+    await performSaveWithData(
+      userId,
+      { situationTags, bodyReactionTags, behaviorTags, memo },
+      demoMode
+    )
   }
 
   const hasSelection =
@@ -170,6 +223,20 @@ export default function RecordPage() {
     }
 
     if (!isLoggedIn || !user) {
+      try {
+        sessionStorage.setItem(
+          PENDING_RECORD_KEY,
+          JSON.stringify({
+            situationTags,
+            bodyReactionTags,
+            behaviorTags,
+            memo,
+          } satisfies PendingRecordData)
+        )
+      } catch {
+        /* ignore */
+      }
+      setLoginModalSource('save')
       setLoginModalOpen(true)
       return
     }
@@ -181,23 +248,35 @@ export default function RecordPage() {
   }
 
   const handleLoginSuccess = async (email?: string) => {
-    const result = await login(email)
+    const result = await login(email, { redirectTo: '/record' })
     if (result && 'user' in result) {
+      if (loginModalSource === 'interact') {
+        setLoginModalOpen(false)
+        setLoginModalSource(null)
+        return
+      }
       const existsToday = await hasManualRecordToday(result.user.id)
       if (existsToday) {
         toast.error('오늘 기록은 이미 작성되었습니다.')
         setLoginModalOpen(false)
+        setLoginModalSource(null)
         return
       }
       setError(null)
       await performSave(result.user.id, result.isDemo)
       setLoginModalOpen(false)
+      setLoginModalSource(null)
       router.push('/observe')
     } else if (result && 'emailSent' in result) {
       return { emailSent: true }
     } else if (result && 'error' in result) {
       return { error: result.error }
     }
+  }
+
+  const handleInteractRequireLogin = () => {
+    setLoginModalSource('interact')
+    setLoginModalOpen(true)
   }
 
   return (
@@ -234,6 +313,8 @@ export default function RecordPage() {
               onChange={(value, checked) =>
                 toggleTag(setSituationTags, value, checked, situationTags)
               }
+              onInteract={handleInteractRequireLogin}
+              disabled={!isLoggedIn}
             />
           </div>
 
@@ -248,6 +329,8 @@ export default function RecordPage() {
               onChange={(value, checked) =>
                 toggleTag(setBodyReactionTags, value, checked, bodyReactionTags)
               }
+              onInteract={handleInteractRequireLogin}
+              disabled={!isLoggedIn}
             />
           </div>
 
@@ -262,6 +345,8 @@ export default function RecordPage() {
               onChange={(value, checked) =>
                 toggleTag(setBehaviorTags, value, checked, behaviorTags)
               }
+              onInteract={handleInteractRequireLogin}
+              disabled={!isLoggedIn}
             />
           </div>
 
@@ -271,10 +356,17 @@ export default function RecordPage() {
               추가 메모 (선택)
             </label>
             <textarea
-              placeholder="상황이나 생각을 간단히 기록하세요"
+              placeholder={`오늘 떠오른 상황이나 생각을 간단히 기록해보세요.
+
+예)
+어제 있었던 일이 계속 떠올랐다
+오늘 일이 많아 긴장했다
+앞으로 결과가 걱정된다`}
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              rows={3}
+              onFocus={() => !isLoggedIn && handleInteractRequireLogin()}
+              readOnly={!isLoggedIn}
+              rows={6}
               className="w-full rounded-xl border border-[#E8E2FF] px-4 py-3 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent resize-none"
             />
           </div>
@@ -288,15 +380,22 @@ export default function RecordPage() {
             disabled={!hasSelection || saving || alreadyRecordedToday === true}
             className="w-full py-3.5 bg-[#8E7CFF] text-white rounded-2xl font-semibold hover:bg-[#7D6BEE] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? '저장 중...' : '기록 저장'}
+            {saving ? '기록 중...' : '오늘 반응 기록하기'}
           </button>
+          <p className="mt-3 text-center text-xs text-[#999999]">
+            기록이 쌓이면 나의 반응 패턴을 분석할 수 있습니다.
+          </p>
         </div>
       </div>
 
       <LoginModal
         open={loginModalOpen}
-        onOpenChange={setLoginModalOpen}
+        onOpenChange={(open) => {
+          setLoginModalOpen(open)
+          if (!open) setLoginModalSource(null)
+        }}
         onLogin={handleLoginSuccess}
+        variant={loginModalSource === 'interact' ? 'record' : 'save'}
       />
     </main>
   )

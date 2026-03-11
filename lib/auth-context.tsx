@@ -19,10 +19,12 @@ export type LoginResult =
   | { error: string }
   | null
 
+type LoginOptions = { redirectTo?: string }
+
 type AuthContextValue = {
   user: User | null
   isLoggedIn: boolean
-  login: (email?: string) => Promise<LoginResult>
+  login: (email?: string, options?: LoginOptions) => Promise<LoginResult>
   logout: () => void
   isDemoMode: boolean
 }
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const login = useCallback(async (email?: string): Promise<LoginResult> => {
+  const login = useCallback(async (email?: string, options?: LoginOptions): Promise<LoginResult> => {
     if (email === 'google') {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -87,6 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryParams: {
             prompt: 'select_account',
           },
+          ...(options?.redirectTo && typeof window !== 'undefined'
+            ? { redirectTo: `${window.location.origin}${options.redirectTo.startsWith('/') ? options.redirectTo : `/${options.redirectTo}`}` }
+            : {}),
         },
       })
       if (error) {
@@ -97,7 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (email) {
-      const { data, error } = await supabase.auth.signInWithOtp({ email })
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        ...(options?.redirectTo && typeof window !== 'undefined'
+          ? { emailRedirectTo: `${window.location.origin}${options.redirectTo.startsWith('/') ? options.redirectTo : `/${options.redirectTo}`}` }
+          : {}),
+      })
       if (error) {
         console.error('Auth error:', error)
         if (error.message?.toLowerCase().includes('rate limit')) {
@@ -156,7 +166,7 @@ export function useAuth() {
     return {
       user: null,
       isLoggedIn: false,
-      login: async () => null as LoginResult,
+      login: async (_email?: string, _options?: LoginOptions) => null as LoginResult,
       logout: () => {},
       isDemoMode: false,
     }

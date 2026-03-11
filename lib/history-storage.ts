@@ -25,8 +25,6 @@ const VALID_TEST_PATTERNS = new Set([
 export function isManualRecord(record: ObservationRecord): boolean {
   if (record.pattern === 'manual_record') return true
   if (record.resultType === 'QR') return true
-  const q1 = record.answers?.q1 ?? ''
-  if (typeof q1 === 'string' && q1.startsWith('[')) return true
   const type = (record.resultType || record.pattern || '').toUpperCase()
   if (!VALID_TEST_PATTERNS.has(type)) return true
   return false

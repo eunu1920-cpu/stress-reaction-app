@@ -8,13 +8,26 @@ import { useAuth } from '@/lib/auth-context'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { RequireAuth } from '@/components/require-auth'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ChevronDownIcon } from 'lucide-react'
 
 const VIEW_TABS = [
   { id: 'timeline', label: '타임라인' },
   { id: 'calendar', label: '캘린더' },
 ] as const
 
-const CATEGORIES = [
+const RECORD_TYPE_FILTERS = [
+  { id: 'test', label: '테스트' },
+  { id: 'manual', label: '기록' },
+  { id: 'category', label: '카테고리' },
+] as const
+
+const CATEGORY_OPTIONS = [
   { id: 'all', label: '전체' },
   { id: 'stress', label: '스트레스' },
   { id: 'relation', label: '관계' },
@@ -36,7 +49,8 @@ const REACTION_LABELS: Record<string, string> = {
 }
 
 type ViewTabId = (typeof VIEW_TABS)[number]['id']
-type CategoryId = (typeof CATEGORIES)[number]['id']
+type RecordTypeFilterId = 'all' | (typeof RECORD_TYPE_FILTERS)[number]['id']
+type CategoryId = (typeof CATEGORY_OPTIONS)[number]['id']
 
 const VALID_TEST_PATTERNS = new Set([
   'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8',
@@ -187,6 +201,7 @@ export default function HistoryPage() {
   const { user } = useAuth()
   const [history, setHistory] = useState<ObservationRecord[] | null>(null)
   const [viewTab, setViewTab] = useState<ViewTabId>('timeline')
+  const [recordTypeFilter, setRecordTypeFilter] = useState<RecordTypeFilterId>('all')
   const [category, setCategory] = useState<CategoryId>('all')
   const [calendarMonth, setCalendarMonth] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -221,17 +236,38 @@ export default function HistoryPage() {
     return map
   }, [history])
 
+  const recordsForCalendar = useMemo(() => {
+    if (!history) return recordsByDate
+    let list = history
+    if (recordTypeFilter === 'test') list = list.filter((r) => !isManualRecord(r))
+    else if (recordTypeFilter === 'manual') list = list.filter((r) => isManualRecord(r))
+    if (category !== 'all') list = list.filter((r) => getCategory(r.resultType) === category)
+    const map: Record<string, ObservationRecord[]> = {}
+    list.forEach((r) => {
+      const key = r.date.slice(0, 10)
+      if (!map[key]) map[key] = []
+      map[key].push(r)
+    })
+    Object.keys(map).forEach((k) => map[k].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+    return map
+  }, [history, recordTypeFilter, category])
+
   const filteredHistory = useMemo(() => {
     if (!history) return null
     let list = history
     if (viewTab === 'calendar' && selectedDate) {
       list = (recordsByDate[selectedDate] ?? []).slice()
     }
+    if (recordTypeFilter === 'test') {
+      list = list.filter((r) => !isManualRecord(r))
+    } else if (recordTypeFilter === 'manual') {
+      list = list.filter((r) => isManualRecord(r))
+    }
     if (category !== 'all') {
       list = list.filter((r) => getCategory(r.resultType) === category)
     }
     return list
-  }, [history, category, viewTab, selectedDate, recordsByDate])
+  }, [history, recordTypeFilter, category, viewTab, selectedDate, recordsByDate])
 
   const handleCardClick = (record: ObservationRecord) => {
     if (isManualRecord(record)) {
@@ -290,23 +326,66 @@ export default function HistoryPage() {
           ))}
         </div>
 
-        {/* 기록 필터 */}
-        <div className="flex flex-nowrap justify-center items-center gap-6 mb-6">
-          {CATEGORIES.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setCategory(tab.id)}
-              className={cn(
-                'text-sm transition-colors pb-1 border-b-2 border-transparent',
-                category === tab.id
-                  ? 'text-[#8E7CFF] font-semibold border-[#8E7CFF] hover:text-[#7D6BEE]'
-                  : 'text-[#6B7280] font-normal hover:text-[#4B5563]'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* 필터: 테스트 | 기록 | 카테고리 ▼ */}
+        <div className="flex flex-row items-center justify-center gap-4 mb-6 text-sm">
+          <button
+            type="button"
+            onClick={() =>
+              setRecordTypeFilter((prev) => (prev === 'test' ? 'all' : 'test'))
+            }
+            className={cn(
+              'transition-colors hover:text-[#8E7CFF]',
+              recordTypeFilter === 'test' ? 'text-[#8E7CFF] font-semibold' : 'text-[#555555]'
+            )}
+          >
+            테스트
+          </button>
+          <span className="text-[#CCCCCC]">|</span>
+          <button
+            type="button"
+            onClick={() =>
+              setRecordTypeFilter((prev) => (prev === 'manual' ? 'all' : 'manual'))
+            }
+            className={cn(
+              'transition-colors hover:text-[#8E7CFF]',
+              recordTypeFilter === 'manual' ? 'text-[#8E7CFF] font-semibold' : 'text-[#555555]'
+            )}
+          >
+            기록
+          </button>
+          <span className="text-[#CCCCCC]">|</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex items-center gap-1 transition-colors hover:text-[#8E7CFF]',
+                  recordTypeFilter === 'category' || category !== 'all'
+                    ? 'text-[#8E7CFF] font-semibold'
+                    : 'text-[#555555]'
+                )}
+              >
+                {category === 'all'
+                  ? '카테고리'
+                  : CATEGORY_OPTIONS.find((c) => c.id === category)?.label ?? '카테고리'}
+                <ChevronDownIcon className="size-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[120px]">
+              {CATEGORY_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.id}
+                  onClick={() => {
+                    setCategory(opt.id)
+                    setRecordTypeFilter(opt.id === 'all' ? 'all' : 'category')
+                  }}
+                  className={cn(category === opt.id && 'bg-[#E8E2FF]/50')}
+                >
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {isLoading && (
@@ -326,7 +405,7 @@ export default function HistoryPage() {
           <>
             {hasNoFilteredData && (
               <div className="min-h-[120px] flex items-center justify-center text-[#555555] text-sm">
-                이 카테고리에 기록이 없습니다.
+                이 조건에 맞는 기록이 없습니다.
               </div>
             )}
             {filteredHistory && filteredHistory.length > 0 && (
@@ -385,7 +464,7 @@ export default function HistoryPage() {
                   const y = calendarMonth.getFullYear()
                   const m = calendarMonth.getMonth()
                   const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-                  const hasRecords = (recordsByDate[key]?.length ?? 0) > 0
+                  const hasRecords = (recordsForCalendar[key]?.length ?? 0) > 0
                   const isSelected = selectedDate === key
                   return (
                     <button
@@ -427,8 +506,8 @@ export default function HistoryPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-[#555555] py-4">
-                    {category !== 'all'
-                      ? '이 날짜에 해당 카테고리 기록이 없습니다.'
+                    {recordTypeFilter !== 'all' || category !== 'all'
+                      ? '이 날짜에 해당 조건의 기록이 없습니다.'
                       : '이 날짜에 기록이 없습니다.'}
                   </p>
                 )}

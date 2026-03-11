@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import { AppNav } from "@/components/app-nav";
+import { PatternProgressBanner } from "@/components/PatternProgressBanner";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <Providers>
           <AppNav />
+          <PatternProgressBanner />
           {children}
           <Analytics />
         </Providers>
