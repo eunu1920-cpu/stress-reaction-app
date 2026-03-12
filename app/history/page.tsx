@@ -58,7 +58,16 @@ const VALID_TEST_PATTERNS = new Set([
   'R1', 'R2', 'C1', 'C2', 'C3',
 ])
 
-function getCategory(resultType: string): CategoryId {
+function getCategory(recordOrType: ObservationRecord | string): CategoryId {
+  if (typeof recordOrType !== 'string') {
+    if (recordOrType.sourceKind === 'pattern_lens') {
+      const mapped = recordOrType.category === 'self' ? 'inner' : recordOrType.category
+      if (mapped === 'stress' || mapped === 'relation' || mapped === 'inner') return mapped
+    }
+    return getCategory(recordOrType.resultType || '')
+  }
+
+  const resultType = recordOrType
   const t = (resultType || '').toUpperCase()
   if (t === 'QR') return 'inner'
   const first = t.charAt(0)
@@ -97,6 +106,11 @@ function formatTagsForDisplay(tags: string[] | null | undefined): string {
 }
 
 function getSituationLabel(record: ObservationRecord): string {
+  if (record.sourceKind === 'pattern_lens' && record.answers?.q1) {
+    const arr = parseJsonArray(record.answers.q1)
+    const text = formatTagsForDisplay(arr)
+    if (text) return text
+  }
   if (record.resultType === 'QR' && record.answers?.q1) {
     const arr = parseJsonArray(record.answers.q1)
     const tagsText = formatTagsForDisplay(arr)
@@ -110,10 +124,18 @@ function getSituationLabel(record: ObservationRecord): string {
     const fallback = map[record.answers.q1] ?? record.answers.q1
     return fallback === '[]' || fallback === '""' ? '' : fallback
   }
-  return CATEGORY_LABELS[getCategory(record.resultType)] ?? '스트레스 상황'
+  return CATEGORY_LABELS[getCategory(record)] ?? '스트레스 상황'
 }
 
 function getReactionLabel(record: ObservationRecord): string {
+  if (record.sourceKind === 'pattern_lens') {
+    const q2 = parseJsonArray(record.answers?.q2 ?? '')
+    const q3 = parseJsonArray(record.answers?.q3 ?? '')
+    const combined = [formatTagsForDisplay(q2), formatTagsForDisplay(q3)]
+      .filter(Boolean)
+      .join(' · ')
+    return combined || record.summary || '-'
+  }
   if (record.resultType === 'QR') {
     const q2 = parseJsonArray(record.answers?.q2 ?? '')
     const q3 = parseJsonArray(record.answers?.q3 ?? '')
@@ -241,7 +263,7 @@ export default function HistoryPage() {
     let list = history
     if (recordTypeFilter === 'test') list = list.filter((r) => !isManualRecord(r))
     else if (recordTypeFilter === 'manual') list = list.filter((r) => isManualRecord(r))
-    if (category !== 'all') list = list.filter((r) => getCategory(r.resultType) === category)
+    if (category !== 'all') list = list.filter((r) => getCategory(r) === category)
     const map: Record<string, ObservationRecord[]> = {}
     list.forEach((r) => {
       const key = r.date.slice(0, 10)
@@ -264,12 +286,16 @@ export default function HistoryPage() {
       list = list.filter((r) => isManualRecord(r))
     }
     if (category !== 'all') {
-      list = list.filter((r) => getCategory(r.resultType) === category)
+      list = list.filter((r) => getCategory(r) === category)
     }
     return list
   }, [history, recordTypeFilter, category, viewTab, selectedDate, recordsByDate])
 
   const handleCardClick = (record: ObservationRecord) => {
+    if (record.sourceKind === 'pattern_lens') {
+      router.push(`/pattern/response/${record.id}`)
+      return
+    }
     if (isManualRecord(record)) {
       router.push(`/record/detail/${record.id}`)
       return

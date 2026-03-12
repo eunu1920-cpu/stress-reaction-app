@@ -6,6 +6,12 @@ export type SaveRecordParams = {
   userId?: string | null
   category: string
   pattern: string
+  sourceKind?: string
+  patternCode?: string
+  questionId?: string
+  optionId?: string
+  questionVersion?: number
+  sourceSnapshot?: Record<string, unknown>
   tags?: string[]
   situationTags?: string[]
   bodyReactionTags?: string[]
@@ -29,6 +35,12 @@ export async function saveRecord(params: SaveRecordParams): Promise<boolean> {
     user_id: user.id,
     category: params.category,
     pattern: params.pattern,
+    source_kind: params.sourceKind ?? (params.pattern === 'manual_record' ? 'manual_record' : 'stress_test'),
+    pattern_code: params.patternCode ?? null,
+    question_id: params.questionId ?? null,
+    option_id: params.optionId ?? null,
+    question_version: params.questionVersion ?? null,
+    source_snapshot: params.sourceSnapshot ?? {},
     content,
   }
   const payload =

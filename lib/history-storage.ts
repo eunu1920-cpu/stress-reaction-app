@@ -9,11 +9,18 @@ export type ObservationAnswers = {
 export type ObservationRecord = {
   id: string
   date: string // ISO-8601
+  category?: string
   resultType: string
   answers: ObservationAnswers
   summary: string
   memo?: string
   pattern?: string
+  sourceKind?: string
+  patternCode?: string
+  questionId?: string
+  optionId?: string
+  questionVersion?: number
+  sourceSnapshot?: Record<string, unknown> | null
 }
 
 const VALID_TEST_PATTERNS = new Set([
@@ -23,6 +30,7 @@ const VALID_TEST_PATTERNS = new Set([
 ])
 
 export function isManualRecord(record: ObservationRecord): boolean {
+  if (record.sourceKind === 'pattern_lens') return false
   if (record.pattern === 'manual_record') return true
   if (record.resultType === 'QR') return true
   const type = (record.resultType || record.pattern || '').toUpperCase()
@@ -36,6 +44,12 @@ type SupabaseRecord = {
   user_id: string
   category: string
   pattern: string
+  source_kind?: string | null
+  pattern_code?: string | null
+  question_id?: string | null
+  option_id?: string | null
+  question_version?: number | null
+  source_snapshot?: Record<string, unknown> | null
   content: string | null
   created_at: string
   situation_tags?: string[] | null
@@ -44,7 +58,9 @@ type SupabaseRecord = {
 }
 
 function supabaseRowToRecord(row: SupabaseRecord): ObservationRecord {
+  const sourceKind = row.source_kind ?? (row.pattern === 'manual_record' ? 'manual_record' : row.pattern === 'pattern_lens' ? 'pattern_lens' : 'stress_test')
   const isManual = row.pattern === 'manual_record'
+  const isPatternLens = sourceKind === 'pattern_lens'
   const situation = (row.situation_tags ?? []) as string[]
   const body = (row.body_reaction_tags ?? []) as string[]
   const behavior = (row.behavior_tags ?? []) as string[]
@@ -54,9 +70,16 @@ function supabaseRowToRecord(row: SupabaseRecord): ObservationRecord {
   const content = row.content ?? ''
   return {
     id: row.id,
+    category: row.category,
     date: row.created_at,
-    resultType: isManual ? 'QR' : row.pattern,
+    resultType: isManual ? 'QR' : isPatternLens ? (row.pattern_code ?? row.pattern) : row.pattern,
     pattern: row.pattern,
+    sourceKind,
+    patternCode: row.pattern_code ?? undefined,
+    questionId: row.question_id ?? undefined,
+    optionId: row.option_id ?? undefined,
+    questionVersion: row.question_version ?? undefined,
+    sourceSnapshot: row.source_snapshot ?? null,
     answers: {
       q1: JSON.stringify(situation),
       q2: JSON.stringify(body),
