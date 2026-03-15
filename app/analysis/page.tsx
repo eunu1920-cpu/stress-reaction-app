@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { fetchRecords, type ObservationRecord } from '@/lib/history-storage'
-import { fetchLatestAnalysis, saveAnalysis } from '@/lib/analysis-storage'
+import { fetchAnalysisHistory, saveAnalysis, type StoredAnalysis } from '@/lib/analysis-storage'
+import { ANALYSIS_BATCH_SIZE, getAnalysisProgress } from '@/lib/analysis-progress'
 import { useAuth } from '@/lib/auth-context'
 import {
   Accordion,
@@ -129,15 +130,26 @@ function formatDateShort(iso: string): string {
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+function formatDateTimeShort(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function AnalysisPage() {
   const { user } = useAuth()
   const [data, setData] = useState<{ subject: string; value: number }[]>(initialChartData)
   const [records, setRecords] = useState<ObservationRecord[]>([])
-  const [analysis, setAnalysis] = useState<string | null>(null)
-  const [analysisPeriod, setAnalysisPeriod] = useState<{ start: string; end: string } | null>(null)
+  const [analysisHistory, setAnalysisHistory] = useState<StoredAnalysis[]>([])
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null)
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
-  const [recordsAtLastAnalysis, setRecordsAtLastAnalysis] = useState<number>(0)
 
   useEffect(() => {
     let cancelled = false
@@ -151,24 +163,41 @@ export default function AnalysisPage() {
   }, [user?.id])
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!user?.id) {
+      setAnalysisHistory([])
+      setSelectedAnalysisId(null)
+      return
+    }
 
     let cancelled = false
-    fetchLatestAnalysis(user.id).then((stored) => {
-      if (!cancelled && stored) {
-        setAnalysis(stored.analysis)
-        setAnalysisPeriod({ start: stored.periodStart, end: stored.periodEnd })
-        setRecordsAtLastAnalysis(stored.recordCount)
+    fetchAnalysisHistory(user.id).then((stored) => {
+      if (!cancelled) {
+        setAnalysisHistory(stored)
+        setSelectedAnalysisId((prev) => {
+          if (prev && stored.some((item) => item.id === prev)) return prev
+          return stored[0]?.id ?? null
+        })
       }
     })
     return () => { cancelled = true }
   }, [user?.id])
 
+  const latestAnalysis = analysisHistory[0] ?? null
+  const selectedAnalysis = useMemo(() => {
+    if (analysisHistory.length === 0) return null
+    return analysisHistory.find((item) => item.id === selectedAnalysisId) ?? latestAnalysis
+  }, [analysisHistory, latestAnalysis, selectedAnalysisId])
+  const selectedAnalysisIndex = selectedAnalysis
+    ? analysisHistory.findIndex((item) => item.id === selectedAnalysis.id)
+    : -1
+  const selectedAnalysisRound =
+    selectedAnalysisIndex >= 0 ? analysisHistory.length - selectedAnalysisIndex : 0
+
   const fetchAnalysis = useCallback(
     async (previousAnalysisText?: string) => {
-      if (records.length < 7 || !user?.id) return
+      if (records.length < ANALYSIS_BATCH_SIZE || !user?.id) return
 
-      const batch = records.slice(0, 7)
+      const batch = records.slice(0, ANALYSIS_BATCH_SIZE)
       const apiRecords = recordsToApiFormat(batch)
       const oldestDate = batch[batch.length - 1]?.date ?? ''
       const newestDate = batch[0]?.date ?? ''
@@ -187,15 +216,16 @@ export default function AnalysisPage() {
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || '분석 요청 실패')
         const text = json.analysis ?? ''
-        setAnalysis(text)
-        setAnalysisPeriod({ start: oldestDate, end: newestDate })
-        setRecordsAtLastAnalysis(records.length)
-        await saveAnalysis(user.id, {
+        const saved = await saveAnalysis(user.id, {
           recordCount: records.length,
           analysis: text,
           periodStart: oldestDate,
           periodEnd: newestDate,
         })
+        if (saved) {
+          setAnalysisHistory((prev) => [saved, ...prev])
+          setSelectedAnalysisId(saved.id)
+        }
       } catch (err) {
         setAnalysisError(err instanceof Error ? err.message : '분석을 불러올 수 없습니다.')
       } finally {
@@ -206,27 +236,17 @@ export default function AnalysisPage() {
   )
 
   useEffect(() => {
-    if (records.length < 7 || !user?.id || analysisLoading) return
+    if (records.length < ANALYSIS_BATCH_SIZE || !user?.id || analysisLoading) return
 
-    let cancelled = false
-    fetchLatestAnalysis(user.id).then((stored) => {
-      if (cancelled) return
-      const hasStoredAnalysis = stored !== null
-      const newRecordsSinceLast = hasStoredAnalysis
-        ? records.length - stored.recordCount
-        : 7
+    if (!latestAnalysis) {
+      void fetchAnalysis()
+      return
+    }
 
-      if (!hasStoredAnalysis) {
-        void fetchAnalysis()
-        return
-      }
-
-      if (newRecordsSinceLast >= 7) {
-        void fetchAnalysis(stored.analysis)
-      }
-    })
-    return () => { cancelled = true }
-  }, [records, user?.id, analysisLoading, fetchAnalysis])
+    if (records.length - latestAnalysis.recordCount >= ANALYSIS_BATCH_SIZE) {
+      void fetchAnalysis(latestAnalysis.analysis)
+    }
+  }, [records, user?.id, analysisLoading, fetchAnalysis, latestAnalysis])
 
   const domainMax = useMemo(() => {
     const max = Math.max(1, ...data.map((d) => d.value))
@@ -234,21 +254,20 @@ export default function AnalysisPage() {
   }, [data])
 
   const hasData = data.some((d) => d.value > 0)
-  const hasEnoughForFirst = records.length >= 7
-  const newRecordsSinceLast = analysis
-    ? Math.max(0, records.length - recordsAtLastAnalysis)
-    : 0
-  const recordsNeededForNext = Math.max(0, 7 - newRecordsSinceLast)
+  const { hasEnoughForFirst, recordsNeeded } = getAnalysisProgress(
+    records.length,
+    latestAnalysis?.recordCount ?? null
+  )
   const progressMessage =
     !hasEnoughForFirst
       ? records.length === 0
-        ? '새 기록 7개가 쌓이면 다음 분석이 생성됩니다.'
-        : `새 기록 ${7 - records.length}개가 더 쌓이면 다음 분석이 생성됩니다.`
-      : recordsNeededForNext === 0
-        ? '새 기록 7개가 쌓이면 다음 분석이 생성됩니다.'
-        : `새 기록 ${recordsNeededForNext}개가 더 쌓이면 다음 분석이 생성됩니다.`
+        ? `새 기록 ${ANALYSIS_BATCH_SIZE}개가 쌓이면 다음 분석이 생성됩니다.`
+        : `새 기록 ${ANALYSIS_BATCH_SIZE - records.length}개가 더 쌓이면 다음 분석이 생성됩니다.`
+      : recordsNeeded === 0
+        ? '새 분석이 준비되었습니다. 잠시만 기다려 주세요.'
+        : `새 기록 ${recordsNeeded}개가 더 쌓이면 다음 분석이 생성됩니다.`
 
-  const analysisRound = recordsAtLastAnalysis >= 7 ? Math.floor(recordsAtLastAnalysis / 7) : 0
+  const latestAnalysisRound = analysisHistory.length
   const roundPreviewMessages: Record<number, string> = {
     1: '다음 분석에서는 반복되는 상황과 반응 패턴이 함께 정리됩니다.',
     2: '다음 분석에서는 주요 트리거 상황과 감정 반응 흐름이 분석됩니다.',
@@ -256,9 +275,9 @@ export default function AnalysisPage() {
     4: '다음 분석에서는 나에게 맞는 대응 전략이 제안됩니다.',
   }
   const roundPreviewMessage =
-    analysisRound >= 4
+    latestAnalysisRound >= 4
       ? roundPreviewMessages[4]
-      : roundPreviewMessages[analysisRound as 1 | 2 | 3]
+      : roundPreviewMessages[latestAnalysisRound as 1 | 2 | 3]
 
   return (
     <RequireAuth>
@@ -285,7 +304,7 @@ export default function AnalysisPage() {
                 <p className="text-sm text-[#666666] leading-relaxed text-center">
                   {records.length === 0
                     ? '7개 이상 기록하면 첫 AI 분석이 생성됩니다.'
-                    : `현재 ${records.length}개 기록. 7개가 쌓이면 첫 분석이 생성됩니다.`}
+                    : `현재 ${records.length}개 기록. ${ANALYSIS_BATCH_SIZE}개가 쌓이면 첫 분석이 생성됩니다.`}
                 </p>
                 <p className="text-sm text-[#8E7CFF] font-medium text-center">
                   {progressMessage}
@@ -299,18 +318,51 @@ export default function AnalysisPage() {
               <p className="text-sm text-red-600 leading-relaxed text-center">
                 {analysisError}
               </p>
-            ) : analysis ? (
+            ) : selectedAnalysis ? (
               <>
-                {analysisPeriod && (
+                {selectedAnalysis && (
                   <p className="text-xs text-[#777777] text-center">
-                    {analysisRound}회차 분석 · {formatDateShort(analysisPeriod.start)} ~ {formatDateShort(analysisPeriod.end)} (최근 7개 기록)
+                    {selectedAnalysisRound}회차 분석 · {formatDateShort(selectedAnalysis.periodStart)} ~ {formatDateShort(selectedAnalysis.periodEnd)} (최근 7개 기록)
                   </p>
                 )}
                 <div className="rounded-lg bg-[#F5F3FA] p-6 min-w-0">
                   <p className="text-sm text-[#666666] leading-relaxed whitespace-pre-line">
-                    {analysis}
+                    {selectedAnalysis.analysis}
                   </p>
                 </div>
+                {analysisHistory.length > 1 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[#333333] text-center">이전 분석 다시보기</p>
+                    <div className="flex flex-col gap-2">
+                      {analysisHistory.map((item, index) => {
+                        const round = analysisHistory.length - index
+                        const isSelected = selectedAnalysisId === item.id
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setSelectedAnalysisId(item.id)}
+                            className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                              isSelected
+                                ? 'border-[#CFC2FF] bg-[#F3EEFF]'
+                                : 'border-[#E8E2FF] bg-white hover:bg-[#F8F5FF]'
+                            }`}
+                          >
+                            <p className="text-sm font-semibold text-[#333333]">
+                              {round}회차 분석
+                            </p>
+                            <p className="mt-1 text-xs text-[#777777]">
+                              {formatDateShort(item.periodStart)} ~ {formatDateShort(item.periodEnd)}
+                            </p>
+                            <p className="mt-1 text-xs text-[#999999]">
+                              생성 시각: {formatDateTimeShort(item.createdAt)}
+                            </p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-1 text-center">
                   <p className="text-sm text-[#8E7CFF] font-medium">
                     {progressMessage}

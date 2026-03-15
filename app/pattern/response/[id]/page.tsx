@@ -13,13 +13,18 @@ type Snapshot = {
   interpretationTitle?: string
   interpretationSummary?: string
   interpretationBody?: string
+  interpretationInsight?: string
+  reflectionQuestion?: string
   interpretationPoints?: string[]
 }
 
 type PatternResponseRecord = {
   created_at: string
   category: string
+  pattern: string | null
+  source_kind: string | null
   pattern_code: string | null
+  content: string | null
   source_snapshot: Snapshot | null
 }
 
@@ -40,11 +45,76 @@ const CATEGORY_LABELS: Record<string, string> = {
   self: '개인 상황',
 }
 
+function getInterpretationSections(snapshot?: Snapshot | null, fallbackContent?: string | null) {
+  const summary = snapshot?.interpretationSummary?.trim() ?? ''
+  const rawBody = snapshot?.interpretationBody?.trim() || fallbackContent?.trim() || ''
+  const explicitInsight = snapshot?.interpretationInsight?.trim() ?? ''
+  const explicitQuestion = snapshot?.reflectionQuestion?.trim() ?? ''
+  const normalizedBody = rawBody && rawBody !== summary ? rawBody : ''
+
+  if (explicitInsight || explicitQuestion) {
+    return {
+      summary,
+      body: normalizedBody,
+      insight: explicitInsight,
+      question: explicitQuestion,
+    }
+  }
+
+  const insightMatch = rawBody.match(/통찰\s*:/)
+  const questionMatch = rawBody.match(/질문\s*:/)
+  const insightIndex = insightMatch?.index ?? -1
+  const questionIndex = questionMatch?.index ?? -1
+
+  if (insightIndex >= 0 || questionIndex >= 0) {
+    const bodyEnd =
+      insightIndex >= 0
+        ? insightIndex
+        : questionIndex >= 0
+          ? questionIndex
+          : rawBody.length
+    const body = rawBody.slice(0, bodyEnd).trim()
+    const insightLabelLength = insightMatch?.[0]?.length ?? 0
+    const questionLabelLength = questionMatch?.[0]?.length ?? 0
+    const insight =
+      insightIndex >= 0
+        ? rawBody
+            .slice(
+              insightIndex + insightLabelLength,
+              questionIndex >= 0 && questionIndex > insightIndex ? questionIndex : rawBody.length
+            )
+            .trim()
+        : ''
+    const question =
+      questionIndex >= 0
+        ? rawBody.slice(questionIndex + questionLabelLength).trim()
+        : ''
+
+    return {
+      summary: summary && summary !== body ? summary : '',
+      body,
+      insight,
+      question,
+    }
+  }
+
+  return {
+    summary,
+    body: normalizedBody,
+    insight: '',
+    question: '',
+  }
+}
+
 export default function PatternResponseDetailPage() {
   const params = useParams()
   const id = params?.id as string | undefined
   const [record, setRecord] = useState<PatternResponseRecord | null>(null)
   const [loading, setLoading] = useState(true)
+  const interpretationSections = getInterpretationSections(
+    record?.source_snapshot,
+    record?.content
+  )
 
   useEffect(() => {
     if (!id) {
@@ -56,9 +126,9 @@ export default function PatternResponseDetailPage() {
     const load = async () => {
       const { data, error } = await supabase
         .from('records')
-        .select('created_at, category, pattern_code, source_snapshot')
+        .select('created_at, category, pattern, source_kind, pattern_code, content, source_snapshot')
         .eq('id', id)
-        .eq('source_kind', 'pattern_lens')
+        .or('source_kind.eq.pattern_lens,pattern.eq.pattern_lens')
         .maybeSingle()
 
       if (!cancelled) {
@@ -152,13 +222,47 @@ export default function PatternResponseDetailPage() {
                 <h2 className="mt-2 text-lg font-semibold text-[#333333]">
                   {record.source_snapshot?.interpretationTitle ?? '패턴 해석'}
                 </h2>
-                <p className="mt-3 text-sm leading-relaxed text-[#555555]">
-                  {record.source_snapshot?.interpretationSummary ?? ''}
-                </p>
-                <p className="mt-4 text-sm leading-relaxed text-[#333333]">
-                  {record.source_snapshot?.interpretationBody ?? ''}
-                </p>
+                {interpretationSections.summary && (
+                  <p className="mt-3 text-sm leading-relaxed text-[#555555]">
+                    {interpretationSections.summary}
+                  </p>
+                )}
               </section>
+
+              <div className="mb-6 space-y-3">
+                {interpretationSections.body && (
+                  <section className="rounded-2xl bg-[#F8F5FF] p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
+                      해석
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-[#333333]">
+                      {interpretationSections.body}
+                    </p>
+                  </section>
+                )}
+
+                {interpretationSections.insight && (
+                  <section className="rounded-2xl border border-[#E8E2FF] bg-white p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
+                      통찰
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-[#333333]">
+                      {interpretationSections.insight}
+                    </p>
+                  </section>
+                )}
+
+                {interpretationSections.question && (
+                  <section className="rounded-2xl border border-[#DDD4FF] bg-[#F8F5FF] p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
+                      관찰 질문
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-[#333333]">
+                      {interpretationSections.question}
+                    </p>
+                  </section>
+                )}
+              </div>
 
               {(record.source_snapshot?.interpretationPoints?.length ?? 0) > 0 && (
                 <section>

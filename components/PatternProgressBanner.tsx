@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { fetchRecords } from '@/lib/history-storage'
+import { fetchLatestAnalysis } from '@/lib/analysis-storage'
+import { ANALYSIS_BATCH_SIZE, getAnalysisProgress } from '@/lib/analysis-progress'
 
 type PatternProgressBannerProps = {
   currentCount?: number
@@ -12,28 +14,32 @@ type PatternProgressBannerProps = {
 
 export function PatternProgressBanner({
   currentCount,
-  totalCount = 7,
+  totalCount = ANALYSIS_BATCH_SIZE,
   className = '',
 }: PatternProgressBannerProps) {
   const { user } = useAuth()
   const [resolvedCount, setResolvedCount] = useState(currentCount ?? 0)
+  const [recordsAtLastAnalysis, setRecordsAtLastAnalysis] = useState<number | null>(null)
 
   useEffect(() => {
     if (typeof currentCount === 'number') {
       setResolvedCount(currentCount)
-      return
     }
 
     if (!user) {
       setResolvedCount(0)
+      setRecordsAtLastAnalysis(null)
       return
     }
 
     let cancelled = false
 
-    fetchRecords(user.id).then((records) => {
+    Promise.all([fetchRecords(user.id), fetchLatestAnalysis(user.id)]).then(([records, latestAnalysis]) => {
       if (cancelled) return
-      setResolvedCount(records.length)
+      if (typeof currentCount !== 'number') {
+        setResolvedCount(records.length)
+      }
+      setRecordsAtLastAnalysis(latestAnalysis?.recordCount ?? null)
     })
 
     return () => {
@@ -41,11 +47,10 @@ export function PatternProgressBanner({
     }
   }, [currentCount, user?.id])
 
-  const progressCount = useMemo(() => {
-    if (resolvedCount <= 0) return 0
-    const remainder = resolvedCount % totalCount
-    return remainder === 0 ? totalCount : remainder
-  }, [resolvedCount, totalCount])
+  const progressCount = useMemo(
+    () => getAnalysisProgress(resolvedCount, recordsAtLastAnalysis).progressCount,
+    [recordsAtLastAnalysis, resolvedCount]
+  )
 
   if (!user) return null
 

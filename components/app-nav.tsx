@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import type { User } from '@supabase/supabase-js'
 import { useAuth } from '@/lib/auth-context'
 import {
   DropdownMenu,
@@ -29,17 +27,6 @@ export function AppNav() {
   const pathname = usePathname()
   const router = useRouter()
   const { user: authUser, logout, isDemoMode } = useAuth()
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    if (!authUser?.id) {
-      setUser(null)
-      return
-    }
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user ?? null)
-    })
-  }, [authUser?.id])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -47,7 +34,7 @@ export function AppNav() {
     router.push('/')
   }
 
-  const displayUser = user ?? authUser
+  const displayUser = authUser
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-[#E8E2FF] bg-[#F5F3FA]/95 backdrop-blur supports-[backdrop-filter]:bg-[#F5F3FA]/80">
@@ -82,9 +69,16 @@ export function AppNav() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs font-medium text-[#666666] hover:bg-[#E8E2FF] hover:text-[#5a4bb5]"
+                  className="text-xs font-medium text-[#666666] hover:bg-[#E8E2FF] hover:text-[#5a4bb5] flex items-center gap-1"
                 >
                   계정 정보
+                  {/* 질문 채택 시 표시: 아주 작은 보라 다이아몬드 뱃지 (adoptedCount > 0일 때) */}
+                  {false && (
+                    <span
+                      className="inline-block w-1.5 h-1.5 rotate-45 bg-[#8E7CFF] shadow-[0_0_6px_rgba(142,124,255,0.6)]"
+                      aria-hidden
+                    />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[240px] p-4">
@@ -95,6 +89,9 @@ export function AppNav() {
                   </p>
                   <p className="font-mono text-xs break-all">
                     ID: {formatUserId(displayUser.id)}
+                  </p>
+                  <p className="pt-2 text-xs text-[#8E7CFF]/80">
+                    당신이 깨운 타인의 리듬: 0명
                   </p>
                 </div>
               </DropdownMenuContent>

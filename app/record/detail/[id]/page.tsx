@@ -85,6 +85,7 @@ export default function RecordDetailPage() {
             situation_tags?: string[] | null
             body_reaction_tags?: string[] | null
             behavior_tags?: string[] | null
+            source_snapshot?: { mood?: string } | null
           }
           const situation = (row.situation_tags ?? []) as string[]
           const body = (row.body_reaction_tags ?? []) as string[]
@@ -97,6 +98,7 @@ export default function RecordDetailPage() {
             date: row.created_at,
             resultType: 'QR',
             pattern: 'manual_record',
+            sourceSnapshot: row.source_snapshot ?? null,
             answers: {
               q1: JSON.stringify(situation),
               q2: JSON.stringify(body),
@@ -144,6 +146,7 @@ export default function RecordDetailPage() {
   const bodyReactionTags = parseJsonArray(record.answers?.q2 ?? '')
   const behaviorTags = parseJsonArray(record.answers?.q3 ?? '')
   const hasTags = situationTags.length > 0 || bodyReactionTags.length > 0 || behaviorTags.length > 0
+  const mood = (record.sourceSnapshot as { mood?: string } | null)?.mood
 
   const categoryLabel =
     record.pattern === 'manual_record'
@@ -187,6 +190,15 @@ export default function RecordDetailPage() {
             </h2>
             <p className="text-sm text-[#333333]">{formatDate(record.date)}</p>
           </section>
+
+          {mood && (
+            <section className="mb-6">
+              <h2 className="text-xs font-semibold text-[#8E7CFF] uppercase tracking-wide mb-2">
+                기분
+              </h2>
+              <p className="text-sm text-[#333333]">{mood === 'clear' ? '맑음' : '흐림'}</p>
+            </section>
+          )}
 
           <section className="mb-6">
             <h2 className="text-xs font-semibold text-[#8E7CFF] uppercase tracking-wide mb-2">

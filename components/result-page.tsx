@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { RotateCcw } from 'lucide-react'
 import { getResultData, type TestType } from '@/lib/result-registry'
 import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
 import { fetchRecords, updateRecordContent } from '@/lib/history-storage'
@@ -148,7 +149,7 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   const multiLayerBlocks = q2Data.multiLayer.split('\n\n')
 
   return (
-    <main className="min-h-screen bg-[#F5F3FA] py-12 sm:py-16 px-4 sm:px-6">
+    <main className="min-h-screen bg-[#F5F3FA] py-12 sm:py-16 pb-24 sm:pb-28 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
         {/* 1. Header */}
         <header className="text-center">
@@ -263,40 +264,44 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
           <ResultMemoSection resultType={type} summary={q2Data.oneLine} />
         )}
 
-        {/* 7. CTA */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4 flex-wrap">
-          <button
-            onClick={() => setIsShareOpen(true)}
-            className="px-8 py-3 bg-[#8E7CFF] text-white rounded-xl font-semibold hover:bg-[#7D6BEE] transition-colors"
-          >
-            결과 공유 · 저장하기
-          </button>
+      </div>
+
+      {/* 하단 고정 CTA 바 - 스크롤 따라다님 */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           {onRestart ? (
             <button
               onClick={onRestart}
-              className="px-6 py-3 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl font-semibold hover:bg-[#E8E2FF] transition-colors"
+              className="p-2.5 rounded-xl text-[#8E7CFF] hover:bg-[#E8E2FF] transition-colors"
+              title="테스트 다시하기"
+              aria-label="테스트 다시하기"
             >
-              다시하기
+              <RotateCcw className="w-5 h-5" />
             </button>
           ) : (
             <Link
-              href="/"
-              className="px-6 py-3 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl font-semibold hover:bg-[#E8E2FF] transition-colors text-center"
+              href="/stress"
+              className="p-2.5 rounded-xl text-[#8E7CFF] hover:bg-[#E8E2FF] transition-colors"
+              title="테스트 다시하기"
+              aria-label="테스트 다시하기"
             >
-              테스트 다시하기
+              <RotateCcw className="w-5 h-5" />
             </Link>
           )}
-        </div>
-
-        <div className="text-center pt-2">
-          <a
-            href="https://forms.gle/7UNYNXfWnVPjJpws8"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#2563eb] font-semibold hover:underline"
-          >
-            👉 다음 자기관찰 주제 투표하기(1분)
-          </a>
+          <div className="flex gap-3 flex-1 justify-end">
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="px-5 py-2.5 bg-[#8E7CFF] text-white rounded-xl text-sm font-semibold hover:bg-[#7D6BEE] transition-colors"
+            >
+              친구에게 공유, 저장
+            </button>
+            <Link
+              href="/pattern"
+              className="px-5 py-2.5 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl text-sm font-semibold hover:bg-[#E8E2FF] transition-colors text-center shrink-0"
+            >
+              다른 테스트 체험하기
+            </Link>
+          </div>
         </div>
       </div>
 

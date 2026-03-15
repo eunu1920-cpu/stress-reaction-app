@@ -40,3 +40,23 @@ export async function hasTestToday(userId?: string | null): Promise<boolean> {
   }
   return false
 }
+
+const STRESS_TEST_PATTERNS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
+
+/** 스트레스 반응 테스트를 한 번이라도 완료했는지 여부 */
+export async function hasCompletedStressTest(
+  userId?: string | null
+): Promise<boolean> {
+  if (!userId) return false
+  const { data } = await supabase
+    .from('records')
+    .select('id, source_kind, pattern')
+    .eq('user_id', userId)
+    .limit(200)
+  if (!data?.length) return false
+  return data.some(
+    (r: { source_kind?: string | null; pattern?: string | null }) =>
+      r.source_kind === 'stress_test' ||
+      (r.pattern && STRESS_TEST_PATTERNS.includes(r.pattern))
+  )
+}

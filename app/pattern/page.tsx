@@ -84,9 +84,15 @@ export default function PatternPage() {
             <p className="text-sm text-[#666666]">
               1질문 · 1선택 · 1패턴 해석
             </p>
-            <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
-              오늘은 세 가지 중 하나만 선택할 수 있어요. 가장 가까운 카테고리를 골라주세요.
-            </p>
+            {user ? (
+              <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
+                오늘은 세 가지 중 하나만 선택할 수 있어요. 가장 가까운 카테고리를 골라주세요.
+              </p>
+            ) : (
+              <p className="pt-2 text-sm font-medium leading-relaxed text-[#8E7CFF]">
+                로그인 없이 카테고리당 2개까지 체험해보세요
+              </p>
+            )}
           </div>
 
           <div className="mt-5 h-px w-full bg-[#E8E2FF]" />

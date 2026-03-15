@@ -41,6 +41,8 @@ export type PatternLensResponseSnapshot = {
   interpretationTitle: string
   interpretationSummary: string
   interpretationBody: string
+  interpretationInsight?: string
+  reflectionQuestion?: string
   interpretationPoints: string[]
 }
 
@@ -240,6 +242,8 @@ export async function savePatternLensResponse(params: {
     interpretationTitle: params.option.interpretation.title,
     interpretationSummary: params.option.interpretation.summary,
     interpretationBody: params.option.interpretation.body,
+    interpretationInsight: params.option.interpretation.insight,
+    reflectionQuestion: params.option.interpretation.reflectionQuestion,
     interpretationPoints: params.option.interpretation.points,
   }
 

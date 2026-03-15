@@ -8,15 +8,19 @@ import { saveRecord } from '@/lib/save-record'
 import { useAuth } from '@/lib/auth-context'
 import { LoginModal } from '@/components/login-modal'
 import { hasManualRecordToday } from '@/lib/daily-limits'
+import { supabase } from '@/lib/supabase'
 
 const MAX_TAGS_PER_SECTION = 4
 const PENDING_RECORD_KEY = 'myview-pending-record'
+
+type MoodType = 'cloudy' | 'clear'
 
 type PendingRecordData = {
   situationTags: string[]
   bodyReactionTags: string[]
   behaviorTags: string[]
   memo: string
+  mood?: MoodType
 }
 
 const SITUATION_TAGS = [
@@ -112,11 +116,15 @@ export default function RecordPage() {
   const [bodyReactionTags, setBodyReactionTags] = useState<string[]>([])
   const [behaviorTags, setBehaviorTags] = useState<string[]>([])
   const [memo, setMemo] = useState('')
+  const [mood, setMood] = useState<MoodType>('cloudy')
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [loginModalSource, setLoginModalSource] = useState<'interact' | 'save' | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [alreadyRecordedToday, setAlreadyRecordedToday] = useState<boolean | null>(null)
+  const [questionExpand, setQuestionExpand] = useState(false)
+  const [questionText, setQuestionText] = useState('')
+  const [questionSubmitting, setQuestionSubmitting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -138,6 +146,7 @@ export default function RecordPage() {
       setBodyReactionTags(data.bodyReactionTags ?? [])
       setBehaviorTags(data.behaviorTags ?? [])
       setMemo(data.memo ?? '')
+      setMood(data.mood === 'clear' ? 'clear' : 'cloudy')
       setSaving(true)
       setError(null)
       void performSaveWithData(user.id, data, isDemoMode).finally(() => setSaving(false))
@@ -188,6 +197,7 @@ export default function RecordPage() {
       summary,
       resultType: 'QR',
       memo: (data.memo ?? '').trim() || undefined,
+      sourceSnapshot: { mood: data.mood ?? 'cloudy' },
     })
     if (!ok) {
       if (demoMode ?? isDemoMode) {
@@ -203,7 +213,7 @@ export default function RecordPage() {
   const performSave = async (userId: string, demoMode?: boolean) => {
     await performSaveWithData(
       userId,
-      { situationTags, bodyReactionTags, behaviorTags, memo },
+      { situationTags, bodyReactionTags, behaviorTags, memo, mood },
       demoMode
     )
   }
@@ -231,6 +241,7 @@ export default function RecordPage() {
             bodyReactionTags,
             behaviorTags,
             memo,
+            mood,
           } satisfies PendingRecordData)
         )
       } catch {
@@ -279,6 +290,42 @@ export default function RecordPage() {
     setLoginModalOpen(true)
   }
 
+  const handleQuestionSubmit = async () => {
+    const text = questionText.trim()
+    if (!text || !user?.id) return
+    if (isDemoMode) {
+      toast.error('데모 모드에서는 제출할 수 없습니다. 로그인 후 이용해주세요.')
+      return
+    }
+    setQuestionSubmitting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        toast.error('로그인이 필요합니다.')
+        setQuestionSubmitting(false)
+        return
+      }
+      const res = await fetch('/api/question-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: text }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json?.error ?? '제출에 실패했습니다.')
+        setQuestionSubmitting(false)
+        return
+      }
+      toast.success('제출되었습니다. 관리자가 검토 후 편집해 드려요.')
+      setQuestionText('')
+      setQuestionExpand(false)
+    } catch {
+      toast.error('제출에 실패했습니다.')
+    }
+    setQuestionSubmitting(false)
+  }
+
   return (
     <main className="min-h-screen bg-[#F5F3FA] px-4 py-8">
       <div className="max-w-2xl mx-auto">
@@ -292,9 +339,41 @@ export default function RecordPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF] p-6">
-          <h1 className="text-xl font-bold text-[#111111] mb-6">
-            오늘 반응 기록
-          </h1>
+          <div className="mb-6 flex flex-wrap items-center gap-4">
+            <h1 className="text-xl font-bold text-[#111111]">
+              오늘 반응 기록
+            </h1>
+            <fieldset
+              className="flex items-center gap-3"
+              onClick={() => !isLoggedIn && handleInteractRequireLogin()}
+            >
+              <legend className="sr-only">오늘의 기분</legend>
+              <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
+                <input
+                  type="radio"
+                  name="mood"
+                  value="cloudy"
+                  checked={mood === 'cloudy'}
+                  onChange={() => isLoggedIn && setMood('cloudy')}
+                  disabled={!isLoggedIn}
+                  className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
+                />
+                <span>흐림</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
+                <input
+                  type="radio"
+                  name="mood"
+                  value="clear"
+                  checked={mood === 'clear'}
+                  onChange={() => isLoggedIn && setMood('clear')}
+                  disabled={!isLoggedIn}
+                  className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
+                />
+                <span>맑음</span>
+              </label>
+            </fieldset>
+          </div>
 
           {alreadyRecordedToday && (
             <div className="mb-6 p-4 rounded-xl bg-[#F0EDFF] border border-[#E8E2FF] text-sm text-[#5a4bb5]">
@@ -385,6 +464,47 @@ export default function RecordPage() {
           <p className="mt-3 text-center text-xs text-[#999999]">
             기록이 쌓이면 나의 반응 패턴을 분석할 수 있습니다.
           </p>
+
+          {/* 상황→질문 나눠보기 */}
+          <div className="mt-6 rounded-xl border border-[#E8E2FF] bg-[#FAF8FF] p-4">
+            <button
+              type="button"
+              onClick={() => {
+                if (!isLoggedIn) {
+                  handleInteractRequireLogin()
+                  return
+                }
+                setQuestionExpand((v) => !v)
+              }}
+              className="w-full text-left"
+            >
+              <p className="text-sm font-medium text-[#5a4bb5]">
+                내 상황을 질문으로 바꾸고, 다른 사용자와 나눠보세요!
+              </p>
+              <p className="mt-0.5 text-xs text-[#777777]">
+                형식은 자유입니다. 관리자가 따로 편집해드려요.
+              </p>
+            </button>
+            {questionExpand && isLoggedIn && (
+              <div className="mt-4 space-y-3">
+                <textarea
+                  placeholder="상황이나 고민을 자유롭게 적어주세요. 질문 형태로 바꿔도 좋고, 그대로 적어도 괜찮아요."
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-[#E8E2FF] px-4 py-3 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleQuestionSubmit}
+                  disabled={!questionText.trim() || questionSubmitting}
+                  className="w-full rounded-xl border border-[#DDD4FF] bg-white px-4 py-2.5 text-sm font-semibold text-[#5a4bb5] hover:bg-[#F8F5FF] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {questionSubmitting ? '제출 중...' : '나눠보기'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
