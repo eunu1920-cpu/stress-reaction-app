@@ -16,7 +16,7 @@ export default function LandingPage() {
 
   return (
     <main
-      className={`min-h-screen flex flex-col items-center justify-center bg-[#FDFCFE] transition-opacity duration-500 ease-out pt-[22vh] md:pt-0 ${
+      className={`min-h-screen flex flex-col items-center justify-center bg-[#FDFCFE] transition-opacity duration-500 ease-out ${
         isExiting ? 'opacity-0' : 'opacity-100'
       }`}
       style={{
