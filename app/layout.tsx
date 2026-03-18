@@ -6,8 +6,16 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "스트레스 반응구조 확인",
-  description: "스트레스 상황에서 당신은 어떻게 반응하나요?",
+  title: "지금 내 상태, 빠르게 확인해보기",
+  description: "요즘 어디에 더 신경 쓰이고 있나요?",
+  metadataBase: new URL("https://stress-reaction-app-fn4y.vercel.app"),
+  openGraph: {
+    title: "지금 내 상태, 빠르게 확인해보기",
+    description: "요즘 어디에 더 신경 쓰이고 있나요?",
+    url: "https://stress-reaction-app-fn4y.vercel.app",
+    siteName: "MyView",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
