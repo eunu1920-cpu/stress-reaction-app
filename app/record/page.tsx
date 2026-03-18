@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { saveRecord } from '@/lib/save-record'
@@ -9,6 +8,9 @@ import { useAuth } from '@/lib/auth-context'
 import { LoginModal } from '@/components/login-modal'
 import { hasManualRecordToday } from '@/lib/daily-limits'
 import { supabase } from '@/lib/supabase'
+import { showRecordSuccessToast } from '@/components/record-success-toast'
+
+type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 const MAX_TAGS_PER_SECTION = 4
 const PENDING_RECORD_KEY = 'myview-pending-record'
@@ -109,8 +111,9 @@ function CheckboxGrid({
   )
 }
 
+const SUCCESS_DISPLAY_MS = 1500
+
 export default function RecordPage() {
-  const router = useRouter()
   const { user, isLoggedIn, login, isDemoMode } = useAuth()
   const [situationTags, setSituationTags] = useState<string[]>([])
   const [bodyReactionTags, setBodyReactionTags] = useState<string[]>([])
@@ -119,7 +122,7 @@ export default function RecordPage() {
   const [mood, setMood] = useState<MoodType>('cloudy')
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [loginModalSource, setLoginModalSource] = useState<'interact' | 'save' | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [alreadyRecordedToday, setAlreadyRecordedToday] = useState<boolean | null>(null)
   const [questionExpand, setQuestionExpand] = useState(false)
@@ -147,9 +150,9 @@ export default function RecordPage() {
       setBehaviorTags(data.behaviorTags ?? [])
       setMemo(data.memo ?? '')
       setMood(data.mood === 'clear' ? 'clear' : 'cloudy')
-      setSaving(true)
+      setSaveStatus('loading')
       setError(null)
-      void performSaveWithData(user.id, data, isDemoMode).finally(() => setSaving(false))
+      void performSaveWithData(user.id, data, isDemoMode)
     } catch {
       sessionStorage.removeItem(PENDING_RECORD_KEY)
     }
@@ -174,7 +177,7 @@ export default function RecordPage() {
     userId: string,
     data: PendingRecordData,
     demoMode?: boolean
-  ) => {
+  ): Promise<boolean> => {
     const summary = [
       data.situationTags.join(', '),
       data.bodyReactionTags.join(', '),
@@ -202,12 +205,18 @@ export default function RecordPage() {
     if (!ok) {
       if (demoMode ?? isDemoMode) {
         toast.error('데모 모드에서는 기록이 저장되지 않습니다. 로그인 후 다시 시도해주세요.')
+        setSaveStatus('idle')
       } else {
-        setError('저장에 실패했습니다.')
-        return
+        setSaveStatus('error')
+        setError('저장에 실패했어요. 다시 시도해 주세요')
       }
+      return false
     }
-    router.push('/observe')
+    setAlreadyRecordedToday(true)
+    setSaveStatus('success')
+    showRecordSuccessToast()
+    setTimeout(() => setSaveStatus('idle'), SUCCESS_DISPLAY_MS)
+    return true
   }
 
   const performSave = async (userId: string, demoMode?: boolean) => {
@@ -252,10 +261,9 @@ export default function RecordPage() {
       return
     }
 
-    setSaving(true)
+    setSaveStatus('loading')
     setError(null)
     await performSave(user.id, isDemoMode)
-    setSaving(false)
   }
 
   const handleLoginSuccess = async (email?: string) => {
@@ -273,11 +281,11 @@ export default function RecordPage() {
         setLoginModalSource(null)
         return
       }
-      setError(null)
-      await performSave(result.user.id, result.isDemo)
       setLoginModalOpen(false)
       setLoginModalSource(null)
-      router.push('/observe')
+      setError(null)
+      setSaveStatus('loading')
+      await performSave(result.user.id, result.isDemo)
     } else if (result && 'emailSent' in result) {
       return { emailSent: true }
     } else if (result && 'error' in result) {
@@ -450,16 +458,27 @@ export default function RecordPage() {
             />
           </div>
 
-          {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="mb-4 text-sm text-red-600">{error}</p>
+          )}
 
           {/* 5. Save */}
           <button
             type="button"
             onClick={handleSave}
-            disabled={!hasSelection || saving || alreadyRecordedToday === true}
+            disabled={
+              !hasSelection ||
+              saveStatus === 'loading' ||
+              saveStatus === 'success' ||
+              alreadyRecordedToday === true
+            }
             className="w-full py-3.5 bg-[#8E7CFF] text-white rounded-2xl font-semibold hover:bg-[#7D6BEE] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? '기록 중...' : '오늘 반응 기록하기'}
+            {saveStatus === 'loading'
+              ? '저장 중...'
+              : saveStatus === 'success'
+                ? '✔ 기록 완료'
+                : '오늘 반응 기록하기'}
           </button>
           <p className="mt-3 text-center text-xs text-[#999999]">
             기록이 쌓이면 나의 반응 패턴을 분석할 수 있습니다.

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { RequireAuth } from '@/components/require-auth'
 import {
   Radar,
   RadarChart as RechartsRadarChart,
@@ -13,6 +12,7 @@ import {
 import { fetchRecords, type ObservationRecord } from '@/lib/history-storage'
 import { fetchAnalysisHistory, saveAnalysis, type StoredAnalysis } from '@/lib/analysis-storage'
 import { ANALYSIS_BATCH_SIZE, getAnalysisProgress } from '@/lib/analysis-progress'
+import { SAMPLE_ANALYSIS } from '@/lib/analysis-sample-data'
 import { useAuth } from '@/lib/auth-context'
 import {
   Accordion,
@@ -280,7 +280,6 @@ export default function AnalysisPage() {
       : roundPreviewMessages[latestAnalysisRound as 1 | 2 | 3]
 
   return (
-    <RequireAuth>
     <main className="min-h-screen bg-[#F5F3FA] py-8 px-6">
       <div className="mx-auto max-w-6xl">
         <header className="text-center space-y-2 mb-8">
@@ -301,14 +300,25 @@ export default function AnalysisPage() {
           <div className="px-6 py-6 space-y-4">
             {!hasEnoughForFirst ? (
               <>
-                <p className="text-sm text-[#666666] leading-relaxed text-center">
-                  {records.length === 0
-                    ? '7개 이상 기록하면 첫 AI 분석이 생성됩니다.'
-                    : `현재 ${records.length}개 기록. ${ANALYSIS_BATCH_SIZE}개가 쌓이면 첫 분석이 생성됩니다.`}
-                </p>
+                <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/50 p-4 mb-4">
+                  <p className="text-sm font-semibold text-amber-800 mb-2">샘플</p>
+                  <div className="rounded-lg bg-[#F5F3FA] p-6 min-w-0">
+                    <p className="text-sm text-[#666666] leading-relaxed whitespace-pre-line">
+                      {SAMPLE_ANALYSIS}
+                    </p>
+                  </div>
+                </div>
                 <p className="text-sm text-[#8E7CFF] font-medium text-center">
+                  기록을 7개 저장하면, 해당분석을 받으실 수 있어요.
+                </p>
+                <p className="text-sm text-[#666666] leading-relaxed text-center">
                   {progressMessage}
                 </p>
+                {!user && (
+                  <p className="text-sm text-[#555555] text-center mt-2">
+                    로그인하면 기록을 저장하고 내 분석을 받을 수 있어요.
+                  </p>
+                )}
               </>
             ) : analysisLoading ? (
               <p className="text-sm text-[#666666] leading-relaxed text-center">
@@ -339,7 +349,7 @@ export default function AnalysisPage() {
                         const isSelected = selectedAnalysisId === item.id
                         return (
                           <button
-                            key={item.id}
+                            key={`${item.id}-${index}`}
                             type="button"
                             onClick={() => setSelectedAnalysisId(item.id)}
                             className={`rounded-xl border px-4 py-3 text-left transition-colors ${
@@ -503,6 +513,5 @@ export default function AnalysisPage() {
         </Accordion>
       </div>
     </main>
-    </RequireAuth>
   )
 }

@@ -89,8 +89,10 @@ export default function PatternPage() {
                 오늘은 세 가지 중 하나만 선택할 수 있어요. 가장 가까운 카테고리를 골라주세요.
               </p>
             ) : (
-              <p className="pt-2 text-sm font-medium leading-relaxed text-[#8E7CFF]">
-                로그인 없이 카테고리당 2개까지 체험해보세요
+              <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
+                먼저 둘러보실 수 있어요.
+                <br />
+                <span className="font-medium text-[#8E7CFF]">모든 질문</span>을 기록 없이 둘러볼 수 있어요.
               </p>
             )}
           </div>

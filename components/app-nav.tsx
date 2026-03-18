@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -10,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { LoginModal } from '@/components/login-modal'
 
 const navItems = [
   { href: '/', label: '홈', shortLabel: '홈' },
@@ -26,7 +28,8 @@ function formatUserId(id: string): string {
 export function AppNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user: authUser, logout, isDemoMode } = useAuth()
+  const { user: authUser, logout, login, isDemoMode } = useAuth()
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -63,49 +66,75 @@ export function AppNav() {
           )
         })}
         <div className="ml-auto flex items-center gap-1">
-          {displayUser && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs font-medium text-[#666666] hover:bg-[#E8E2FF] hover:text-[#5a4bb5] flex items-center gap-1"
-                >
-                  계정 정보
-                  {/* 질문 채택 시 표시: 아주 작은 보라 다이아몬드 뱃지 (adoptedCount > 0일 때) */}
-                  {false && (
-                    <span
-                      className="inline-block w-1.5 h-1.5 rotate-45 bg-[#8E7CFF] shadow-[0_0_6px_rgba(142,124,255,0.6)]"
-                      aria-hidden
-                    />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[240px] p-4">
-                <p className="text-sm font-semibold text-[#333333] mb-3">계정 정보</p>
-                <div className="space-y-1.5 text-sm text-[#666666]">
-                  <p>
-                    이메일: {displayUser.email ?? (isDemoMode ? '데모 계정' : '-')}
-                  </p>
-                  <p className="font-mono text-xs break-all">
-                    ID: {formatUserId(displayUser.id)}
-                  </p>
-                  <p className="pt-2 text-xs text-[#8E7CFF]/80">
-                    당신이 깨운 타인의 리듬: 0명
-                  </p>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {displayUser ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs font-medium text-[#666666] hover:bg-[#E8E2FF] hover:text-[#5a4bb5] flex items-center gap-1"
+                  >
+                    계정 정보
+                    {false && (
+                      <span
+                        className="inline-block w-1.5 h-1.5 rotate-45 bg-[#8E7CFF] shadow-[0_0_6px_rgba(142,124,255,0.6)]"
+                        aria-hidden
+                      />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[240px] p-4">
+                  <p className="text-sm font-semibold text-[#333333] mb-3">계정 정보</p>
+                  <div className="space-y-1.5 text-sm text-[#666666]">
+                    <p>
+                      이메일: {displayUser.email ?? (isDemoMode ? '데모 계정' : '-')}
+                    </p>
+                    <p className="font-mono text-xs break-all">
+                      ID: {formatUserId(displayUser.id)}
+                    </p>
+                    <p className="pt-2 text-xs text-[#8E7CFF]/80">
+                      당신이 깨운 타인의 리듬: 0명
+                    </p>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg px-3 py-2 text-xs font-medium text-[#666666] hover:bg-[#E8E2FF] hover:text-[#5a4bb5] transition-colors"
+                title="테스트용: 다른 계정으로 로그인하려면 로그아웃하세요"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setLoginModalOpen(true)}
+              className="rounded-lg px-4 py-2 text-sm font-semibold bg-[#8E7CFF] text-white hover:bg-[#7D6BEE] transition-colors"
+            >
+              로그인 / 회원가입
+            </button>
           )}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg px-3 py-2 text-xs font-medium text-[#666666] hover:bg-[#E8E2FF] hover:text-[#5a4bb5] transition-colors"
-            title="테스트용: 다른 계정으로 로그인하려면 로그아웃하세요"
-          >
-            Logout
-          </button>
         </div>
+        <LoginModal
+          open={loginModalOpen}
+          onOpenChange={setLoginModalOpen}
+          onLogin={async (email?: string) => {
+            const result = await login(email)
+            if (result && 'user' in result) {
+              setLoginModalOpen(false)
+            }
+            if (result && 'emailSent' in result) {
+              return { emailSent: true }
+            }
+            if (result && 'error' in result) {
+              return { error: result.error }
+            }
+          }}
+          variant="access"
+        />
       </div>
     </nav>
   )

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
+import { RotateCcw } from 'lucide-react'
 import { LoginModal } from '@/components/login-modal'
 import {
   getPatternLensQuestionById,
@@ -21,8 +22,10 @@ import type { PatternLensCategory, PatternLensOption, PatternLensQuestion } from
 import { useAuth } from '@/lib/auth-context'
 import { toBlob } from 'html-to-image'
 import { toast } from 'sonner'
+import { TimedSelectionOptions } from '@/components/timed-selection-options'
+import { playSound } from '@/lib/play-sound'
+import { getRandomTimeoutOption } from '@/lib/pattern-lens/timeout-interpretations'
 
-const TRIAL_QUESTIONS_PER_CATEGORY = 2
 const PATTERN_TRIAL_KEY = 'myview-pattern-trial'
 
 function getTrialStorageKey(anonymousId: string): string {
@@ -207,7 +210,7 @@ function buildPreviewResponse(
 export default function PatternCategoryPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const { user } = useAuth()
+  const { user, isDemoMode } = useAuth()
   const categoryParam = String(params?.category ?? '')
   const [state, setState] = useState<LoadedState>({ status: 'loading' })
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
@@ -273,11 +276,10 @@ export default function PatternCategoryPage() {
       return
     }
 
-    if (!user?.id) {
+    if (!user?.id || isDemoMode) {
       const anonymousId = getOrCreateAnonymousId()
-      const trialQuestions = activeQuestions.slice(0, TRIAL_QUESTIONS_PER_CATEGORY)
       const answered = getTrialAnswered(anonymousId)[category] ?? []
-      const nextQuestion = trialQuestions.find((q) => !answered.includes(q.id))
+      const nextQuestion = activeQuestions.find((q) => !answered.includes(q.id))
       if (!nextQuestion) {
         setState({ status: 'trialComplete' })
         return
@@ -333,7 +335,7 @@ export default function PatternCategoryPage() {
     return () => {
       cancelled = true
     }
-  }, [user?.id, category, isPreviewMode, previewQuestion, previewQuestionId, activeQuestions])
+  }, [user?.id, isDemoMode, category, isPreviewMode, previewQuestion, previewQuestionId, activeQuestions])
 
   const handleSelect = async (option: PatternLensOption) => {
     if (state.status !== 'ready' || saving) return
@@ -370,9 +372,10 @@ export default function PatternCategoryPage() {
   }
 
   const trialQuestions = useMemo(
-    () => (category ? getPatternLensQuestions(category).slice(0, TRIAL_QUESTIONS_PER_CATEGORY) : []),
+    () => (category ? getPatternLensQuestions(category) : []),
     [category]
   )
+  const resultSoundPlayedRef = useRef(false)
 
   const handleTrialNext = useCallback(() => {
     if (state.status !== 'ready' || !state.isTrial || !state.question || !category) return
@@ -382,6 +385,7 @@ export default function PatternCategoryPage() {
     const nextQuestion = trialQuestions.find((q) => !answered.includes(q.id))
     setSelectedOptionId(null)
     setPreviewResponse(null)
+    resultSoundPlayedRef.current = false
     if (!nextQuestion) {
       setState({ status: 'trialComplete' })
       return
@@ -394,6 +398,13 @@ export default function PatternCategoryPage() {
       isTrial: true,
     })
   }, [state.status, state.isTrial, 'question' in state ? state.question?.id : undefined, category, trialQuestions])
+
+  useEffect(() => {
+    if (state.isTrial && activeResponse && !isPreviewMode && !resultSoundPlayedRef.current) {
+      resultSoundPlayedRef.current = true
+      playSound('SOUND_04')
+    }
+  }, [state.isTrial, activeResponse, isPreviewMode])
 
   const handleDownloadResult = async () => {
     if (!resultCardRef.current || sharing || state.status !== 'ready' || !activeResponse) {
@@ -490,8 +501,10 @@ export default function PatternCategoryPage() {
     )
   }
 
+  const showResultFooter = state.status === 'ready' && !!activeResponse
+
   return (
-      <main className="min-h-screen bg-[#F5F3FA] px-4 py-10">
+      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter ? 'pb-24' : ''}`}>
         <div className="mx-auto flex w-full max-w-md flex-col gap-6">
           <div className="text-center">
             <p className="text-sm font-medium text-[#8E7CFF]">{CATEGORY_LABELS[category]}</p>
@@ -504,10 +517,26 @@ export default function PatternCategoryPage() {
                 비회원 체험
               </p>
               <p className="mt-2 text-sm leading-relaxed text-[#555555]">
-                로그인 없이 카테고리당 2개까지 체험할 수 있어요. 기록은 저장되지 않습니다.
+                기록 없이 둘러보는 중이에요.
+                <br />
+                <span className="text-[#666666]">나중에 로그인하시면, 지금까지의 패턴이 모여 &apos;개인 히스토리&apos;와 누적된 &apos;당신의 패턴보고서&apos;를 보여드릴 수 있어요.</span>
               </p>
-              <p className="mt-1 text-xs text-[#777777]">
-                {(trialQuestions.findIndex((q) => q.id === state.question?.id) + 1) || 1} / {TRIAL_QUESTIONS_PER_CATEGORY}
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Link
+                  href="/history"
+                  className="text-sm font-medium text-[#8E7CFF] hover:underline underline-offset-2"
+                >
+                  히스토리
+                </Link>
+                <Link
+                  href="/analysis"
+                  className="text-sm font-medium text-[#8E7CFF] hover:underline underline-offset-2"
+                >
+                  종합분석
+                </Link>
+              </div>
+              <p className="mt-2 text-xs text-[#777777]">
+                {(trialQuestions.findIndex((q) => q.id === state.question?.id) + 1) || 1} / {trialQuestions.length}
               </p>
             </section>
           )}
@@ -581,17 +610,19 @@ export default function PatternCategoryPage() {
           {state.status === 'trialComplete' && (
             <div className="rounded-2xl border border-[#E8E2FF] bg-white p-6 text-center shadow-sm">
               <p className="text-sm font-semibold text-[#333333]">
-                이 카테고리 체험을 모두 사용했어요
+                이 장면에서의 관찰은 여기까지예요
               </p>
               <p className="mt-2 text-sm leading-relaxed text-[#555555]">
-                로그인하면 답변하신 패턴을 모아 상세한 무료분석을 제공해요
+                로그인하시면, 지금까지의 패턴이 모여
+                <br />
+                다른 각도로 보여드릴 수 있어요.
               </p>
               <div className="mt-5 flex flex-col gap-3">
                 <Link
                   href="/pattern"
                   className="inline-flex items-center justify-center rounded-2xl border border-[#DDD4FF] bg-white px-5 py-3 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
                 >
-                  다른 카테고리 체험하기
+                  다른 카테고리 둘러보기
                 </Link>
                 <TrialLoginButton />
               </div>
@@ -637,29 +668,44 @@ export default function PatternCategoryPage() {
               </section>
 
               {(!activeResponse || isPreviewMode) && (
-                <section className="flex flex-col gap-3">
-                  {state.question.options.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => handleSelect(option)}
-                      disabled={saving}
-                      className={`flex min-h-[120px] w-full flex-col justify-start rounded-3xl border px-6 py-5 text-left text-[15px] font-medium text-[#333333] shadow-sm transition-colors hover:border-[#D8CCFF] hover:bg-[#FAF8FF] disabled:cursor-not-allowed disabled:opacity-60 ${
-                        selectedOptionId === option.id
-                          ? 'border-[#CFC2FF] bg-[#F3EEFF]'
-                          : 'border-[#E8E2FF] bg-white'
-                      }`}
-                    >
-                      <span className="block text-sm font-medium text-[#8E7CFF]">{option.id}</span>
-                      <span className="mt-1 block break-words leading-relaxed">{option.label}</span>
-                      {saving && selectedOptionId === option.id && (
-                        <span className="mt-2 block text-sm font-medium text-[#8E7CFF]">
-                          저장 중...
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </section>
+                <>
+                  {state.isTrial && !isPreviewMode ? (
+                    <TimedSelectionOptions
+                      key={state.question.id}
+                      options={state.question.options}
+                      onSelect={(option) => {
+                        setSelectedOptionId(option.id)
+                        setPreviewResponse(buildPreviewResponse(state.question, option))
+                      }}
+                      onTimeout={() => getRandomTimeoutOption()}
+                      enabled={!saving}
+                    />
+                  ) : (
+                    <section className="flex flex-col gap-3">
+                      {state.question.options.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => handleSelect(option)}
+                          disabled={saving}
+                          className={`flex min-h-[120px] w-full flex-col justify-start rounded-3xl border px-6 py-5 text-left text-[15px] font-medium text-[#333333] shadow-sm transition-colors hover:border-[#D8CCFF] hover:bg-[#FAF8FF] disabled:cursor-not-allowed disabled:opacity-60 ${
+                            selectedOptionId === option.id
+                              ? 'border-[#CFC2FF] bg-[#F3EEFF]'
+                              : 'border-[#E8E2FF] bg-white'
+                          }`}
+                        >
+                          <span className="block text-sm font-medium text-[#8E7CFF]">{option.id}</span>
+                          <span className="mt-1 block break-words leading-relaxed">{option.label}</span>
+                          {saving && selectedOptionId === option.id && (
+                            <span className="mt-2 block text-sm font-medium text-[#8E7CFF]">
+                              저장 중...
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </section>
+                  )}
+                </>
               )}
 
               {activeResponse?.display_snapshot && (
@@ -734,51 +780,16 @@ export default function PatternCategoryPage() {
           )}
 
           <div className="pt-1 text-center">
-            {state.status === 'ready' && activeResponse ? (
-              <div className="flex flex-col gap-3">
-                {state.isTrial && (
-                  <button
-                    type="button"
-                    onClick={handleTrialNext}
-                    className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
-                  >
-                    다음 질문 →
-                  </button>
-                )}
-                <div className="flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-[#666666]">
-                  <Link
-                    href="/pattern"
-                    className="transition-colors hover:text-[#5a4bb5]"
-                  >
-                    ← 패턴 돋보기로 돌아가기
-                  </Link>
-                  {!state.isTrial && (
-                    <>
-                      <Link
-                        href="/observe"
-                        className="transition-colors hover:text-[#5a4bb5]"
-                      >
-                        돌아가기
-                      </Link>
-                      <Link
-                        href="/record"
-                        className="transition-colors hover:text-[#5a4bb5]"
-                      >
-                        기록하기
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={handleDownloadResult}
-                        disabled={sharing}
-                        className="transition-colors hover:text-[#5a4bb5] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {sharing ? '이미지 생성 중...' : isPreviewMode ? '미리보기 카드 다운로드' : '결과 카드 다운로드'}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (
+            {state.status === 'ready' && activeResponse && state.isTrial && (
+              <button
+                type="button"
+                onClick={handleTrialNext}
+                className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+              >
+                다음 질문 →
+              </button>
+            )}
+            {!showResultFooter && (
               <Link
                 href="/pattern"
                 className="text-sm font-medium text-[#666666] transition-colors hover:text-[#5a4bb5]"
@@ -787,6 +798,37 @@ export default function PatternCategoryPage() {
               </Link>
             )}
           </div>
+
+          {showResultFooter && (
+            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+              <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
+                <Link
+                  href="/observe"
+                  className="rounded-xl p-2.5 text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
+                  title="관찰로 돌아가기"
+                  aria-label="관찰로 돌아가기"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </Link>
+                <div className="flex flex-1 items-center justify-end gap-3">
+                  <Link
+                    href="/record"
+                    className="shrink-0 rounded-xl bg-[#8E7CFF] px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                  >
+                    지금 반응 남기기
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleDownloadResult}
+                    disabled={sharing}
+                    className="shrink-0 rounded-xl border border-[#8E7CFF] px-5 py-2.5 text-sm font-semibold text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {sharing ? '이미지 생성 중...' : '내 패턴 저장하기'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
   )

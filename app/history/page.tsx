@@ -4,10 +4,10 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ObservationRecord } from '@/lib/history-storage'
 import { fetchRecords, isManualRecord } from '@/lib/history-storage'
+import { SAMPLE_HISTORY_RECORDS } from '@/lib/history-sample-data'
 import { useAuth } from '@/lib/auth-context'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { RequireAuth } from '@/components/require-auth'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -166,9 +166,11 @@ function getDaysInMonth(year: number, month: number) {
 function RecordCard({
   record,
   onClick,
+  isSample,
 }: {
   record: ObservationRecord
   onClick: () => void
+  isSample?: boolean
 }) {
   const type = (record.resultType || '').toUpperCase()
   const situationLabel = getSituationLabel(record)
@@ -180,14 +182,21 @@ function RecordCard({
     <Card
       role="button"
       tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-      className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md p-4 gap-0 rounded-xl border border-[#E8E2FF] h-[140px] flex flex-col min-h-[140px] overflow-hidden"
+      onClick={isSample ? undefined : onClick}
+      onKeyDown={
+        isSample
+          ? undefined
+          : (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick()
+              }
+            }
+      }
+      className={cn(
+        'transition p-4 gap-0 rounded-xl border border-[#E8E2FF] h-[140px] flex flex-col min-h-[140px] overflow-hidden',
+        isSample ? 'cursor-default opacity-90' : 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md'
+      )}
     >
       <div className="flex items-center gap-2 flex-wrap shrink-0">
         <span className="text-base" title={isManual ? '오늘의 관찰' : '테스트 결과'}>
@@ -199,6 +208,11 @@ function RecordCard({
         <span className="inline-flex items-center rounded-md bg-[#E8E2FF] px-2 py-0.5 text-xs font-medium text-[#5a4bb5]">
           [{type}]
         </span>
+        {isSample && (
+          <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+            샘플
+          </span>
+        )}
       </div>
       <p className="text-sm text-[#555555] leading-relaxed mt-1.5 line-clamp-1 shrink-0">
         {situationLabel || ''}
@@ -320,7 +334,6 @@ export default function HistoryPage() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
   return (
-    <RequireAuth>
     <main className="min-h-screen bg-[#F5F3FA] py-8 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-semibold text-center mb-2">
@@ -421,8 +434,30 @@ export default function HistoryPage() {
         )}
 
         {hasNoData && !isLoading && (
-          <div className="min-h-[200px] flex items-center justify-center text-[#555555]">
-            아직 기록이 없습니다.
+          <div className="space-y-4">
+            <p className="text-center text-[#555555] font-medium">
+              샘플입니다. 마음껏 둘러보세요.
+            </p>
+            {!user && (
+              <p className="text-center text-sm text-[#8E7CFF] font-medium">
+                로그인하면 내 기록을 저장할 수 있어요.
+              </p>
+            )}
+            <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/50 p-4">
+              <p className="text-sm font-semibold text-amber-800 mb-3">
+                샘플
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {SAMPLE_HISTORY_RECORDS.map((record) => (
+                  <RecordCard
+                    key={record.id}
+                    record={record}
+                    onClick={() => {}}
+                    isSample
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -548,6 +583,5 @@ export default function HistoryPage() {
         )}
       </div>
     </main>
-    </RequireAuth>
   )
 }

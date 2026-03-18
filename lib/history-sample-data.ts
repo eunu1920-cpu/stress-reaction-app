@@ -1,0 +1,80 @@
+import type { ObservationRecord } from '@/lib/history-storage'
+
+/** 샘플용 히스토리 기록 (실제 데이터 아님) */
+export const SAMPLE_HISTORY_RECORDS: ObservationRecord[] = [
+  {
+    id: 'sample-1',
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    category: 'stress',
+    resultType: 'S3',
+    pattern: 'S3',
+    sourceKind: 'sample',
+    answers: {
+      q1: JSON.stringify(['업무 마감 압박', '상사와의 대화']),
+      q2: JSON.stringify(['어깨가 뻣뻣해짐', '가슴이 조임']),
+      q3: JSON.stringify(['미루려 함', '해결하려 함']),
+    },
+    summary: '업무 마감 압박 · 어깨가 뻣뻣해짐 · 미루려 함',
+    memo: '마감이 다가오니까 몸이 굳는 느낌. 일단 시작해보자고 생각했는데 손이 잘 안 움직였다.',
+  },
+  {
+    id: 'sample-2',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    category: 'relation',
+    resultType: 'R1',
+    pattern: 'R1',
+    sourceKind: 'sample',
+    answers: {
+      q1: JSON.stringify(['친구와 오해']),
+      q2: JSON.stringify(['속이 쓰림', '생각이 많아짐']),
+      q3: JSON.stringify(['피하고 싶음', '직접 말하려 함']),
+    },
+    summary: '친구와 오해 · 속이 쓰림 · 피하고 싶음',
+    memo: '말을 꺼내기 어려웠는데, 나중에 문자로 정리해서 보냈다. 다행히 이해해줬다.',
+  },
+  {
+    id: 'sample-3',
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    category: 'inner',
+    resultType: 'QR',
+    pattern: 'manual_record',
+    sourceKind: 'sample',
+    answers: {
+      q1: JSON.stringify(['자기고민']),
+      q2: JSON.stringify(['생각 많아짐', '피곤함']),
+      q3: JSON.stringify(['혼자 있으려 함']),
+    },
+    summary: '자기고민 · 생각 많아짐 · 혼자 있으려 함',
+    memo: '오늘 하루 뭔가 허전했다. 내가 뭘 원하는지 다시 생각해봐야겠다.',
+  },
+  {
+    id: 'sample-4',
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    category: 'stress',
+    resultType: 'S5',
+    pattern: 'S5',
+    sourceKind: 'sample',
+    answers: {
+      q1: JSON.stringify(['발표 준비']),
+      q2: JSON.stringify(['긴장', '심장이 빨리 뛰는 느낌']),
+      q3: JSON.stringify(['해결하려 함', '준비를 많이 함']),
+    },
+    summary: '발표 준비 · 긴장 · 해결하려 함',
+    memo: '연습을 여러 번 했더니 조금 덜 떨렸다. 다음엔 더 여유 있게 준비해보자.',
+  },
+  {
+    id: 'sample-5',
+    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    category: 'relation',
+    resultType: 'QR',
+    pattern: 'manual_record',
+    sourceKind: 'sample',
+    answers: {
+      q1: JSON.stringify(['가족과의 대화']),
+      q2: JSON.stringify(['짜증', '답답함']),
+      q3: JSON.stringify(['참으려 함', '피하고 싶음']),
+    },
+    summary: '가족과의 대화 · 짜증 · 참으려 함',
+    memo: '서로 이해가 안 되는 대화였는데, 나중에 차분히 다시 이야기해보기로 했다.',
+  },
+]

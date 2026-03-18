@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
-import { AppNav } from "@/components/app-nav";
-import { PatternProgressBanner } from "@/components/PatternProgressBanner";
+import { LayoutShell } from "@/components/layout-shell";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -23,19 +22,28 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-1EKMW12QYG"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-1EKMW12QYG');
-          `}
-        </Script>
+        {/* Google Analytics - localhost(개발)에서는 렌더링 안 함 */}
+        {process.env.NEXT_PUBLIC_GA_ID &&
+          process.env.NODE_ENV === "production" && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                (function() {
+                  if (typeof window === 'undefined') return;
+                  if (window.location.hostname === 'localhost') return;
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+                })();
+              `}
+            </Script>
+          </>
+        )}
 
         {/* 🔥 카카오 SDK 추가 */}
         <Script
@@ -55,9 +63,7 @@ export default function RootLayout({
 
       <body className="font-sans antialiased">
         <Providers>
-          <AppNav />
-          <PatternProgressBanner />
-          {children}
+          <LayoutShell>{children}</LayoutShell>
           <Analytics />
         </Providers>
       </body>
