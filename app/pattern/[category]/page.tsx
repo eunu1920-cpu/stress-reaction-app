@@ -511,7 +511,7 @@ export default function PatternCategoryPage() {
             <h1 className="mt-2 text-2xl font-bold text-[#333333]">오늘의 관찰 질문</h1>
           </div>
 
-          {state.isTrial && state.status === 'ready' && state.question && (
+          {state.isTrial && state.status === 'ready' && state.question && category !== 'relation' && (
             <section className="rounded-2xl border border-[#DDD4FF] bg-[#F8F5FF] p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
                 비회원 체험

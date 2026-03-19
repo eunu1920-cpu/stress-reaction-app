@@ -6,7 +6,10 @@ import { PatternProgressBanner } from '@/components/PatternProgressBanner'
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isLanding = pathname === '/promo'
+  const isLanding =
+    pathname === '/promo' ||
+    pathname === '/stress' ||
+    pathname.startsWith('/result/stress')
 
   return (
     <>

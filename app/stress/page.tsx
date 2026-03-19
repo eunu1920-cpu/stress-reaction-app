@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth-context'
@@ -9,19 +9,21 @@ import { hasTestToday } from '@/lib/daily-limits'
 export default function StressPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const [step, setStep] = useState<'landing' | 'q1' | 'q2' | 'q3'>('landing')
+  const [step, setStep] = useState<'q1' | 'q2' | 'q3'>('q1')
   const [q1Answer, setQ1Answer] = useState<string>('')
   const [q2Answer, setQ2Answer] = useState<string>('')
   const [q3Answer, setQ3Answer] = useState<string>('')
 
-  const handleStart = async () => {
-    const existsToday = await hasTestToday(user?.id ?? null)
-    if (existsToday) {
-      toast.error('오늘 테스트는 이미 완료되었습니다.')
-      return
-    }
-    setStep('q1')
-  }
+  useEffect(() => {
+    let cancelled = false
+    hasTestToday(user?.id ?? null).then((exists) => {
+      if (!cancelled && exists) {
+        toast.error('오늘 테스트는 이미 완료되었습니다.')
+        router.replace('/')
+      }
+    })
+    return () => { cancelled = true }
+  }, [user?.id, router])
 
   const handleQ1Select = (value: string) => {
     setQ1Answer(value)
@@ -44,43 +46,12 @@ export default function StressPage() {
     }, 300)
   }
 
-  if (step === 'landing') {
-    return (
-      <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
-        <div className="flex flex-col items-center text-center gap-8 max-w-2xl bg-white rounded-[18px] shadow-sm p-12">
-          <h1 className="text-3xl md:text-4xl font-semibold text-[#333333] leading-tight whitespace-nowrap">
-            스트레스 상황에서,
-            <br />
-            당신은 어떻게 반응하나요?
-          </h1>
-
-          <p className="text-base md:text-lg text-[#666666] leading-relaxed">
-            {'오늘 뭔가 힘들다면,'}
-            <br />
-            {'감정이 아니라 반응 구조를 확인해보세요.'}
-          </p>
-
-          <button 
-            onClick={handleStart}
-            className="mt-6 px-12 py-4 bg-[#8E7CFF] text-white rounded-2xl text-base md:text-lg font-medium leading-relaxed hover:bg-[#7D6BEE] transition-colors"
-          >
-            {'내 스트레스'}
-            <br />
-            {'반응구조 확인하기'}
-          </button>
-        </div>
-      </main>
-    )
-  }
-
   if (step === 'q1') {
     return (
       <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
         <div className="flex flex-col items-center text-center gap-8 max-w-2xl w-full bg-white rounded-[18px] shadow-sm p-10">
           <h2 className="text-3xl md:text-4xl font-semibold text-[#333333] leading-tight">
-            {'스트레스가 올라올 때,'}
-            <br />
-            {'몸에서 가장 먼저 느껴지는 것은?'}
+            {'스트레스받으면 몸에서 가장 자주 느끼는 신호는?'}
           </h2>
 
           <div className="flex flex-col gap-3 w-full max-w-xl mt-4">
@@ -116,14 +87,14 @@ export default function StressPage() {
 
           <div className="flex flex-col gap-3 w-full max-w-xl mt-4">
             {[
-              { value: 'S1', label: '사람이 많고 자극이 많은 환경' },
-              { value: 'S2', label: '갑작스러운 일정 변경이나 예측 불가 상황' },
-              { value: 'S3', label: '즉각적인 결정이나 선택을 요구받을 때' },
-              { value: 'S4', label: '설명하거나 정리해서 말해야 할 때' },
-              { value: 'S5', label: '익숙한 방식이 바뀌거나 규칙이 흔들릴 때' },
-              { value: 'S6', label: '실수·오류가 발생했을 때' },
-              { value: 'S7', label: '빠른 속도나 경쟁 분위기에 놓일 때' },
-              { value: 'S8', label: '내가 빠지면 안 될 것 같은 책임 상황' },
+              { value: 'S1', label: '주변이 사람많고 정신없을때' },
+              { value: 'S2', label: '일정이 바뀌거나 예측이 안 될 때' },
+              { value: 'S3', label: '생각할 틈없이 바로 결정해야 할 때' },
+              { value: 'S4', label: '뭔가 정리해서 설명해야 할 때' },
+              { value: 'S5', label: '내가 하던 방식, 규칙을 바꿔야 할 때' },
+              { value: 'S6', label: '착오나 실수가 생겼을 때' },
+              { value: 'S7', label: '분위기가 빠르게 바뀌고 경쟁적일 때' },
+              { value: 'S8', label: '내가 왠지 빠지면 안 될 거 같은 책임감이나 부담이 느껴질 때' },
             ].map((option) => (
               <button
                 key={option.value}
@@ -144,17 +115,15 @@ export default function StressPage() {
       <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
         <div className="flex flex-col items-center text-center gap-8 max-w-2xl w-full bg-white rounded-[18px] shadow-sm p-10">
           <h2 className="text-3xl md:text-4xl font-semibold text-[#333333] leading-tight">
-            {'그 순간 머릿속에서는'}
-            <br />
-            {'이런 생각이 돈다.'}
+            {'그 때 일어나는 생각은?'}
           </h2>
 
           <div className="flex flex-col gap-3 w-full max-w-xl mt-4">
             {[
-              { value: 'T1', label: '"왜 저렇게 했지?" 계속 곱씹게 된다' },
-              { value: 'T2', label: '"지금 당장 처리해야 해." 급해진다' },
-              { value: 'T3', label: '"일단 미루자." 반응이 느려진다' },
-              { value: 'T4', label: '"이건 내가 끝까지 책임져야 해." 붙잡게 된다' },
+              { value: 'T1', label: '"왜 그랬지..." 계속 생각난다' },
+              { value: 'T2', label: '"지금 당장 해버리자"...급해진다' },
+              { value: 'T3', label: '"일단 미루자"...느려진다' },
+              { value: 'T4', label: '"내가 끝까지 하고 해야지"...붙잡힌다' },
             ].map((option) => (
               <button
                 key={option.value}

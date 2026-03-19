@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { RotateCcw } from 'lucide-react'
 import { getResultData, type TestType } from '@/lib/result-registry'
 import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
@@ -11,6 +12,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Textarea } from '@/components/ui/textarea'
 import { ResultMemoSection } from '@/components/result-memo-section'
 import { ResultMemoDisplay } from '@/components/result-memo-display'
+import { LoginModal } from '@/components/login-modal'
 
 const S_CODE_PATTERNS: Record<string, string> = {
   S1: "👥 자극 밀도 높은 환경",
@@ -33,12 +35,15 @@ interface ResultPageProps {
 }
 
 export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer = '', q3Answer = '', onRestart }: ResultPageProps) {
-  const { user } = useAuth()
+  const pathname = usePathname()
+  const { user, login } = useAuth()
   const [observationText, setObservationText] = useState<string>('')
   const [insightText, setInsightText] = useState<string>('')
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [showAnalysis, setShowAnalysis] = useState(false)
   const [memo, setMemo] = useState('')
   const [memoSaved, setMemoSaved] = useState(false)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
   const lastSavedSignatureRef = useRef<string | null>(null)
 
   const type = String(resultType ?? q2Answer).toUpperCase()
@@ -109,7 +114,10 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   }
 
   const handleSaveMemo = async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      setLoginModalOpen(true)
+      return
+    }
     const records = await fetchRecords(user.id)
     const typeUpper = type.toUpperCase()
     const sorted = records
@@ -138,6 +146,19 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
     setMemoSaved(true)
   }
 
+  const handleLoginSuccess = async (email?: string) => {
+    const result = await login(email, { redirectTo: pathname ?? undefined })
+    if (result && 'user' in result) {
+      setLoginModalOpen(false)
+    }
+    if (result && 'emailSent' in result) {
+      return { emailSent: true }
+    }
+    if (result && 'error' in result) {
+      return { error: result.error }
+    }
+  }
+
   if (!q2Data) {
     return (
       <main className="min-h-screen bg-[#F5F3FA] flex items-center justify-center p-6">
@@ -151,122 +172,131 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   return (
     <main className="min-h-screen bg-[#F5F3FA] py-12 sm:py-16 pb-24 sm:pb-28 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
-        {/* 1. Header */}
-        <header className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] mb-2">
-            당신의 스트레스 반응 구조
-          </h1>
-          <p className="text-base text-[#555555] leading-relaxed">
-            {q2Data.oneLine}
-          </p>
-        </header>
-
-        {/* 2. Insight Card */}
-        {observationText && insightText && (
-          <section className="bg-[#F0EDFF] rounded-2xl border border-[#E8E2FF] p-6 shadow-sm">
-            <p className="text-xs font-semibold text-[#8E7CFF] uppercase tracking-wide mb-2">관찰</p>
-            <p className="text-sm text-[#333333] leading-relaxed mb-4">{observationText}</p>
-            <p className="text-xs font-semibold text-[#8E7CFF] uppercase tracking-wide mb-2">통찰</p>
-            <p className="text-sm text-[#333333] leading-relaxed">{insightText}</p>
-          </section>
-        )}
-
-        {/* 3. S코드 패턴 카드 */}
-        {S_CODE_PATTERNS[type] && (
-          <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-            <h3 className="text-base font-semibold text-[#333333] mb-3">
-              이런 상황에서 특히 스트레스가 커진다
-            </h3>
-            <div className="rounded-xl border border-[#E8E2FF] bg-[#F5F3FA] p-4 flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-[#8E7CFF] px-2 py-0.5 text-xs font-medium text-white shrink-0">[{type}]</span>
-              <span className="text-sm font-medium text-[#333333]">{S_CODE_PATTERNS[type]}</span>
+        {/* 1. 카드 - 바로 보임 */}
+        <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+          <h2 className="text-lg font-bold text-center mb-4">당신의 반응 구조 카드</h2>
+          <img src={cardImageSrc} alt="" className="rounded-xl mb-4 w-full" />
+          {observationText && insightText && (
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-[#333333] leading-relaxed">{observationText}</p>
+              <p className="text-base font-medium text-[#333333] leading-relaxed">{insightText}</p>
             </div>
-          </section>
-        )}
-
-        {/* 4. Section Cards */}
-        <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-          <h3 className="text-base font-semibold text-[#333333] mb-3">촉발 환경</h3>
-          <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q2Data.trigger}</p>
-        </section>
-
-        <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-          <h3 className="text-base font-semibold text-[#333333] mb-3">사고 반응 구조와 원인</h3>
-          <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q2Data.thinking}</p>
-        </section>
-
-        {q1Data && (
-          <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-            <h3 className="text-base font-semibold text-[#333333] mb-3">신체 반응 구조와 원인</h3>
-            <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q1Data.structure}</p>
-          </section>
-        )}
-
-        {q3Data && (
-          <>
-            <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-              <h3 className="text-base font-semibold text-[#333333] mb-3">숨은 강점</h3>
-              <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q3Data.strength}</p>
-            </section>
-            <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-              <h3 className="text-base font-semibold text-[#333333] mb-3">인지 전략 제안</h3>
-              <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q3Data.strategy}</p>
-            </section>
-          </>
-        )}
-
-        <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-          <h3 className="text-base font-semibold text-[#333333] mb-3">다층 해석</h3>
-          <div className="space-y-3">
-            {multiLayerBlocks.map((block, i) => {
-              const parts = block.split(':')
-              return (
-                <p key={i} className="text-sm text-[#555555] leading-relaxed">
-                  <strong className="text-[#333333]">{parts[0]}:</strong> {parts.slice(1).join(':')}
-                </p>
-              )
-            })}
+          )}
+          {!observationText && !insightText && (
+            <p className="text-base text-[#555555] leading-relaxed mb-6">{q2Data.oneLine}</p>
+          )}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="flex-1 py-3 bg-[#8E7CFF] text-white rounded-xl font-semibold hover:bg-[#7D6BEE] transition-colors"
+            >
+              공유하기
+            </button>
+            <button
+              onClick={() => setShowAnalysis(true)}
+              className="flex-1 py-3 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl font-semibold hover:bg-[#E8E2FF] transition-colors"
+            >
+              해석 보기
+            </button>
           </div>
         </section>
 
-        {/* 5. 나의 기록 */}
-        <ResultMemoDisplay resultType={type} />
-
-        {/* 6. 오늘 상황 기록하기 */}
-        {hasFullData ? (
-          <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
-            <h3 className="text-base font-semibold text-[#333333] mb-2">오늘 상황 기록하기</h3>
-            <p className="text-sm text-[#555555] mb-4 leading-relaxed">
-              오늘의 스트레스 상황을 한두 문장으로 기록해보세요. 이 기록이 쌓이면 나의 스트레스 패턴을 AI가 분석할 수 있습니다.
-            </p>
-            <Textarea
-              placeholder="최근 스트레스 상황을 한두 문장으로 기록해보세요."
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              className="min-h-[80px] resize-none border-[#E8E2FF] focus-visible:ring-[#8E7CFF]"
-            />
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={handleSaveMemo}
-                className="px-6 py-3 bg-[#8E7CFF] text-white rounded-xl text-base font-semibold hover:bg-[#7D6BEE] transition-colors"
-              >
-                메모 저장
-              </button>
-            </div>
-            {memoSaved && (
-              <p className="mt-4 text-sm text-[#555555] leading-relaxed">
-                저장되었습니다. 기록은 히스토리에서 확인할 수 있습니다.
-              </p>
+        {/* 2. 해석 섹션 - 클릭 시에만 표시 */}
+        {showAnalysis && (
+          <div className="space-y-6 sm:space-y-8">
+            {S_CODE_PATTERNS[type] && (
+              <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+                <h3 className="text-base font-semibold text-[#333333] mb-3">
+                  이런 상황에서 특히 스트레스가 커진다
+                </h3>
+                <div className="rounded-xl border border-[#E8E2FF] bg-[#F5F3FA] p-4 flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-md bg-[#8E7CFF] px-2 py-0.5 text-xs font-medium text-white shrink-0">[{type}]</span>
+                  <span className="text-sm font-medium text-[#333333]">{S_CODE_PATTERNS[type]}</span>
+                </div>
+              </section>
             )}
-          </section>
-        ) : (
-          <ResultMemoSection resultType={type} summary={q2Data.oneLine} />
-        )}
 
+            <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+              <h3 className="text-base font-semibold text-[#333333] mb-3">촉발 환경</h3>
+              <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q2Data.trigger}</p>
+            </section>
+
+            <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+              <h3 className="text-base font-semibold text-[#333333] mb-3">사고 반응 구조와 원인</h3>
+              <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q2Data.thinking}</p>
+            </section>
+
+            {q1Data && (
+              <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+                <h3 className="text-base font-semibold text-[#333333] mb-3">신체 반응 구조와 원인</h3>
+                <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q1Data.structure}</p>
+              </section>
+            )}
+
+            {q3Data && (
+              <>
+                <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+                  <h3 className="text-base font-semibold text-[#333333] mb-3">숨은 강점</h3>
+                  <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q3Data.strength}</p>
+                </section>
+                <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+                  <h3 className="text-base font-semibold text-[#333333] mb-3">인지 전략 제안</h3>
+                  <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">{q3Data.strategy}</p>
+                </section>
+              </>
+            )}
+
+            <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+              <h3 className="text-base font-semibold text-[#333333] mb-3">다층 해석</h3>
+              <div className="space-y-3">
+                {multiLayerBlocks.map((block, i) => {
+                  const parts = block.split(':')
+                  return (
+                    <p key={i} className="text-sm text-[#555555] leading-relaxed">
+                      <strong className="text-[#333333]">{parts[0]}:</strong> {parts.slice(1).join(':')}
+                    </p>
+                  )
+                })}
+              </div>
+            </section>
+
+            <ResultMemoDisplay resultType={type} />
+
+            {hasFullData ? (
+              <section className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF]/50 p-6">
+                <h3 className="text-base font-semibold text-[#333333] mb-2">오늘 상황 기록하기</h3>
+                <p className="text-sm text-[#555555] mb-4 leading-relaxed">
+                  오늘의 스트레스 상황을 한두 문장으로 기록해보세요. 이 기록이 쌓이면 나의 스트레스 패턴을 AI가 분석할 수 있습니다.
+                </p>
+                <Textarea
+                  placeholder="최근 스트레스 상황을 한두 문장으로 기록해보세요."
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  className="min-h-[80px] resize-none border-[#E8E2FF] focus-visible:ring-[#8E7CFF]"
+                />
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={handleSaveMemo}
+                    className="px-6 py-3 bg-[#8E7CFF] text-white rounded-xl text-base font-semibold hover:bg-[#7D6BEE] transition-colors"
+                  >
+                    메모 저장
+                  </button>
+                </div>
+                {memoSaved && (
+                  <p className="mt-4 text-sm text-[#555555] leading-relaxed">
+                    저장되었습니다. 기록은 히스토리에서 확인할 수 있습니다.
+                  </p>
+                )}
+              </section>
+            ) : (
+              <ResultMemoSection resultType={type} summary={q2Data.oneLine} />
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 하단 고정 CTA 바 - 스크롤 따라다님 */}
+      {/* 하단 고정 CTA 바 */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           {onRestart ? (
@@ -293,14 +323,14 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
               onClick={() => setIsShareOpen(true)}
               className="px-5 py-2.5 bg-[#8E7CFF] text-white rounded-xl text-sm font-semibold hover:bg-[#7D6BEE] transition-colors"
             >
-              친구에게 공유, 저장
+              공유하기
             </button>
-            <Link
-              href="/pattern"
-              className="px-5 py-2.5 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl text-sm font-semibold hover:bg-[#E8E2FF] transition-colors text-center shrink-0"
+            <button
+              onClick={() => setShowAnalysis((v) => !v)}
+              className="px-5 py-2.5 border border-[#8E7CFF] text-[#8E7CFF] rounded-xl text-sm font-semibold hover:bg-[#E8E2FF] transition-colors"
             >
-              다른 테스트 체험하기
-            </Link>
+              {showAnalysis ? '해석 접기' : '해석 보기'}
+            </button>
           </div>
         </div>
       </div>
@@ -337,6 +367,12 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
           </div>
         </div>
       )}
+      <LoginModal
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
+        onLogin={handleLoginSuccess}
+        variant="save"
+      />
     </main>
   )
 }

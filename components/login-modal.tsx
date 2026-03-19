@@ -74,7 +74,7 @@ export function LoginModal({
         <div className="space-y-4 pt-2 min-h-0 overflow-y-auto flex-1">
           <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">
             {isSaveVariant
-              ? '기록을 저장하려면 로그인이 필요합니다.\n로그인하면 나의 반응 패턴을 기록하고\n히스토리와 종합 분석을 확인할 수 있습니다.'
+              ? "무료로그인하면 더 많은 '상태카드'가 있어요."
               : isRecordVariant
                 ? '로그인하면 기록이 저장되고, 7개의 기록이 쌓이면 내 반응 패턴이 보이기 시작해요.'
                 : '이 기능을 사용하려면 로그인이 필요합니다.'}

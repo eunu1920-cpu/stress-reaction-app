@@ -11,7 +11,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         {children}
         <KakaoInAppBrowserModal />
-        <Toaster richColors position="top-center" />
+        <Toaster richColors position="bottom-center" />
       </AuthProvider>
     </ThemeProvider>
   )
