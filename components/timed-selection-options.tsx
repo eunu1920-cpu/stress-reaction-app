@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { playSound } from '@/lib/play-sound'
 
-const TIMER_MS = 10000
+const TIMER_MS = 30000
 const HINT_AT_MS = 7000
 const MESSAGE_DELAY_MS = 500
 const TRANSITION_DURATION_MS = 1500

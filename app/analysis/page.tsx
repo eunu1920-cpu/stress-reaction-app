@@ -9,11 +9,13 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from 'recharts'
-import { fetchRecords, type ObservationRecord } from '@/lib/history-storage'
+import { getLocalAnalysis, loadRecords, setLocalAnalysis } from '@/lib/storage'
+import type { ObservationRecord } from '@/lib/history-storage'
 import { fetchAnalysisHistory, saveAnalysis, type StoredAnalysis } from '@/lib/analysis-storage'
 import { ANALYSIS_BATCH_SIZE, getAnalysisProgress } from '@/lib/analysis-progress'
 import { SAMPLE_ANALYSIS } from '@/lib/analysis-sample-data'
 import { useAuth } from '@/lib/auth-context'
+import { LoginModal } from '@/components/login-modal'
 import {
   Accordion,
   AccordionContent,
@@ -143,8 +145,9 @@ function formatDateTimeShort(iso: string) {
 }
 
 export default function AnalysisPage() {
-  const { user } = useAuth()
+  const { user, login } = useAuth()
   const [data, setData] = useState<{ subject: string; value: number }[]>(initialChartData)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [records, setRecords] = useState<ObservationRecord[]>([])
   const [analysisHistory, setAnalysisHistory] = useState<StoredAnalysis[]>([])
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null)
@@ -153,7 +156,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     let cancelled = false
-    fetchRecords().then((hist) => {
+    loadRecords(user?.id ?? null).then((hist) => {
       if (!cancelled) {
         setRecords(hist)
         setData(buildChartDataFromRecords(hist))
@@ -164,8 +167,14 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (!user?.id) {
-      setAnalysisHistory([])
-      setSelectedAnalysisId(null)
+      const cached = getLocalAnalysis()
+      if (cached) {
+        setAnalysisHistory([cached])
+        setSelectedAnalysisId(cached.id)
+      } else {
+        setAnalysisHistory([])
+        setSelectedAnalysisId(null)
+      }
       return
     }
 
@@ -195,7 +204,7 @@ export default function AnalysisPage() {
 
   const fetchAnalysis = useCallback(
     async (previousAnalysisText?: string) => {
-      if (records.length < ANALYSIS_BATCH_SIZE || !user?.id) return
+      if (records.length < ANALYSIS_BATCH_SIZE) return
 
       const batch = records.slice(0, ANALYSIS_BATCH_SIZE)
       const apiRecords = recordsToApiFormat(batch)
@@ -216,15 +225,36 @@ export default function AnalysisPage() {
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || '분석 요청 실패')
         const text = json.analysis ?? ''
-        const saved = await saveAnalysis(user.id, {
-          recordCount: records.length,
-          analysis: text,
-          periodStart: oldestDate,
-          periodEnd: newestDate,
-        })
-        if (saved) {
-          setAnalysisHistory((prev) => [saved, ...prev])
-          setSelectedAnalysisId(saved.id)
+
+        if (user?.id) {
+          const saved = await saveAnalysis(user.id, {
+            recordCount: records.length,
+            analysis: text,
+            periodStart: oldestDate,
+            periodEnd: newestDate,
+          })
+          if (saved) {
+            setAnalysisHistory((prev) => [saved, ...prev])
+            setSelectedAnalysisId(saved.id)
+          }
+        } else {
+          const tempId = `local-${Date.now()}`
+          const item = {
+            id: tempId,
+            recordCount: records.length,
+            analysis: text,
+            periodStart: oldestDate,
+            periodEnd: newestDate,
+            createdAt: new Date().toISOString(),
+          }
+          setLocalAnalysis({
+            recordCount: records.length,
+            analysis: text,
+            periodStart: oldestDate,
+            periodEnd: newestDate,
+          })
+          setAnalysisHistory((prev) => [item, ...prev])
+          setSelectedAnalysisId(tempId)
         }
       } catch (err) {
         setAnalysisError(err instanceof Error ? err.message : '분석을 불러올 수 없습니다.')
@@ -236,7 +266,7 @@ export default function AnalysisPage() {
   )
 
   useEffect(() => {
-    if (records.length < ANALYSIS_BATCH_SIZE || !user?.id || analysisLoading) return
+    if (records.length < ANALYSIS_BATCH_SIZE || analysisLoading) return
 
     if (!latestAnalysis) {
       void fetchAnalysis()
@@ -382,6 +412,20 @@ export default function AnalysisPage() {
                       {roundPreviewMessage}
                     </p>
                   )}
+                  {!user && (
+                    <div className="pt-3 space-y-2">
+                      <p className="text-sm text-[#555555]">
+                        이 분석은 내일부터 보이지 않아요. 지속 사용하려면 무료 가입해주세요.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setLoginModalOpen(true)}
+                        className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                      >
+                        무료 회원가입
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             ) : null}
@@ -512,6 +556,18 @@ export default function AnalysisPage() {
           </AccordionItem>
         </Accordion>
       </div>
+
+      <LoginModal
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
+        onLogin={async (email?: string) => {
+          const result = await login(email)
+          if (result && 'user' in result) setLoginModalOpen(false)
+          if (result && 'emailSent' in result) return { emailSent: true }
+          if (result && 'error' in result) return { error: result.error }
+        }}
+        variant="access"
+      />
     </main>
   )
 }

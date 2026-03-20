@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { saveRecord } from '@/lib/save-record'
+import { saveData } from '@/lib/storage'
 import { useAuth } from '@/lib/auth-context'
 import { LoginModal } from '@/components/login-modal'
 import { hasManualRecordToday } from '@/lib/daily-limits'
@@ -174,7 +174,7 @@ export default function RecordPage() {
   }
 
   const performSaveWithData = async (
-    userId: string,
+    userId: string | null,
     data: PendingRecordData,
     demoMode?: boolean
   ): Promise<boolean> => {
@@ -186,22 +186,25 @@ export default function RecordPage() {
       .filter(Boolean)
       .join(' · ')
 
-    const ok = await saveRecord({
-      userId: demoMode ?? isDemoMode ? undefined : userId,
-      category: data.situationTags[0] ?? 'QR',
-      pattern: 'manual_record',
-      situationTags: data.situationTags,
-      bodyReactionTags: data.bodyReactionTags,
-      behaviorTags: data.behaviorTags,
-      content: (data.memo ?? '').trim() || summary,
-      q1: JSON.stringify(data.situationTags),
-      q2: JSON.stringify(data.bodyReactionTags),
-      q3: JSON.stringify(data.behaviorTags),
-      summary,
-      resultType: 'QR',
-      memo: (data.memo ?? '').trim() || undefined,
-      sourceSnapshot: { mood: data.mood ?? 'cloudy' },
-    })
+    const effectiveUserId = demoMode ?? isDemoMode ? null : userId
+    const ok = await saveData(
+      {
+        category: data.situationTags[0] ?? 'QR',
+        pattern: 'manual_record',
+        situationTags: data.situationTags,
+        bodyReactionTags: data.bodyReactionTags,
+        behaviorTags: data.behaviorTags,
+        content: (data.memo ?? '').trim() || summary,
+        q1: JSON.stringify(data.situationTags),
+        q2: JSON.stringify(data.bodyReactionTags),
+        q3: JSON.stringify(data.behaviorTags),
+        summary,
+        resultType: 'QR',
+        memo: (data.memo ?? '').trim() || undefined,
+        sourceSnapshot: { mood: data.mood ?? 'cloudy' },
+      },
+      effectiveUserId
+    )
     if (!ok) {
       if (demoMode ?? isDemoMode) {
         toast.error('데모 모드에서는 기록이 저장되지 않습니다. 로그인 후 다시 시도해주세요.')
@@ -219,7 +222,7 @@ export default function RecordPage() {
     return true
   }
 
-  const performSave = async (userId: string, demoMode?: boolean) => {
+  const performSave = async (userId: string | null, demoMode?: boolean) => {
     await performSaveWithData(
       userId,
       { situationTags, bodyReactionTags, behaviorTags, memo, mood },
@@ -241,29 +244,9 @@ export default function RecordPage() {
       return
     }
 
-    if (!isLoggedIn || !user) {
-      try {
-        sessionStorage.setItem(
-          PENDING_RECORD_KEY,
-          JSON.stringify({
-            situationTags,
-            bodyReactionTags,
-            behaviorTags,
-            memo,
-            mood,
-          } satisfies PendingRecordData)
-        )
-      } catch {
-        /* ignore */
-      }
-      setLoginModalSource('save')
-      setLoginModalOpen(true)
-      return
-    }
-
     setSaveStatus('loading')
     setError(null)
-    await performSave(user.id, isDemoMode)
+    await performSave(isLoggedIn && user ? user.id : null, isDemoMode)
   }
 
   const handleLoginSuccess = async (email?: string) => {

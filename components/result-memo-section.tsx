@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { saveRecord } from "@/lib/save-record"
+import { saveData } from "@/lib/storage"
 import { useAuth } from "@/lib/auth-context"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
@@ -17,19 +17,20 @@ export function ResultMemoSection({ resultType, summary }: Props) {
   const [saved, setSaved] = useState(false)
 
   async function handleSave() {
-    if (!user?.id) return
-    await saveRecord({
-      userId: user.id,
-      category: "test",
-      pattern: resultType,
-      content: memo.trim() || summary,
-      q1: "",
-      q2: "",
-      q3: "",
-      summary,
-      resultType,
-      memo: memo.trim() || undefined,
-    })
+    await saveData(
+      {
+        category: "test",
+        pattern: resultType,
+        content: memo.trim() || summary,
+        q1: "",
+        q2: "",
+        q3: "",
+        summary,
+        resultType,
+        memo: memo.trim() || undefined,
+      },
+      user?.id ?? null
+    )
     setMemo("")
     setSaved(true)
   }

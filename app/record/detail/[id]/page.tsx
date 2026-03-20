@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { deleteRecord } from '@/lib/history-storage'
+import { deleteRecordHybrid, loadRecords } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { ObservationRecord } from '@/lib/history-storage'
@@ -51,8 +51,20 @@ export default function RecordDetailPage() {
     }
 
     const load = async () => {
-      if (user?.id) {
-        let { data, error } = await supabase
+      if (!user?.id) {
+        const records = await loadRecords(null)
+        const found = records.find((r) => r.id === id)
+        if (found) {
+          setRecord(found)
+          setLoading(false)
+          return
+        }
+        setNotFound(true)
+        setLoading(false)
+        return
+      }
+
+      let { data, error } = await supabase
           .from('records')
           .select('*')
           .eq('id', id)
@@ -110,7 +122,6 @@ export default function RecordDetailPage() {
           setLoading(false)
           return
         }
-      }
 
       setNotFound(true)
       setLoading(false)
@@ -158,10 +169,10 @@ export default function RecordDetailPage() {
           : 'Manual Observation'
 
   const handleDelete = async () => {
-    if (!record || deleting || !user?.id) return
+    if (!record || deleting) return
     if (!confirm('이 기록을 삭제하시겠습니까?')) return
     setDeleting(true)
-    const ok = await deleteRecord(record.id)
+    const ok = await deleteRecordHybrid(record.id, user?.id ?? null)
     if (ok) {
       toast.success('기록이 삭제되었습니다.')
       router.push('/history')

@@ -1,20 +1,26 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ObservationRecord } from '@/lib/history-storage'
-import { fetchRecords, isManualRecord } from '@/lib/history-storage'
+import { loadRecords } from '@/lib/storage'
+import { isManualRecord } from '@/lib/history-storage'
 import { SAMPLE_HISTORY_RECORDS } from '@/lib/history-sample-data'
 import { useAuth } from '@/lib/auth-context'
 import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import { ChevronDownIcon } from 'lucide-react'
+
+const SEVEN_RECORDS_POPUP_KEY = 'myview_7_records_popup_shown'
 
 const VIEW_TABS = [
   { id: 'timeline', label: '타임라인' },
@@ -241,11 +247,12 @@ export default function HistoryPage() {
   const [category, setCategory] = useState<CategoryId>('all')
   const [calendarMonth, setCalendarMonth] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [showSevenRecordsPopup, setShowSevenRecordsPopup] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      const records = await fetchRecords(user?.id ?? null)
+      const records = await loadRecords(user?.id ?? null)
       const sorted = records
         .slice()
         .sort((a, b) => {
@@ -260,6 +267,14 @@ export default function HistoryPage() {
       cancelled = true
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!history || history.length < 7) return
+    if (typeof sessionStorage === 'undefined') return
+    if (sessionStorage.getItem(SEVEN_RECORDS_POPUP_KEY)) return
+    sessionStorage.setItem(SEVEN_RECORDS_POPUP_KEY, '1')
+    setShowSevenRecordsPopup(true)
+  }, [history])
 
   const recordsByDate = useMemo(() => {
     const map: Record<string, ObservationRecord[]> = {}
@@ -393,38 +408,32 @@ export default function HistoryPage() {
             기록
           </button>
           <span className="text-[#CCCCCC]">|</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex items-center gap-1 transition-colors hover:text-[#8E7CFF]',
-                  recordTypeFilter === 'category' || category !== 'all'
-                    ? 'text-[#8E7CFF] font-semibold'
-                    : 'text-[#555555]'
-                )}
-              >
-                {category === 'all'
-                  ? '카테고리'
-                  : CATEGORY_OPTIONS.find((c) => c.id === category)?.label ?? '카테고리'}
-                <ChevronDownIcon className="size-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="min-w-[120px]">
+          <div className="relative inline-flex">
+            <select
+              value={category}
+              onChange={(e) => {
+                const val = e.target.value as CategoryId
+                setCategory(val)
+                setRecordTypeFilter(val === 'all' ? 'all' : 'category')
+              }}
+              className={cn(
+                'appearance-none rounded-md border-0 bg-transparent pr-8 py-1.5 pl-2 text-sm transition-colors hover:text-[#8E7CFF] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF]/50 cursor-pointer',
+                recordTypeFilter === 'category' || category !== 'all'
+                  ? 'text-[#8E7CFF] font-semibold'
+                  : 'text-[#555555]'
+              )}
+            >
               {CATEGORY_OPTIONS.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.id}
-                  onClick={() => {
-                    setCategory(opt.id)
-                    setRecordTypeFilter(opt.id === 'all' ? 'all' : 'category')
-                  }}
-                  className={cn(category === opt.id && 'bg-[#E8E2FF]/50')}
-                >
-                  {opt.label}
-                </DropdownMenuItem>
+                <option key={opt.id} value={opt.id}>
+                  {opt.id === 'all' ? '카테고리' : opt.label}
+                </option>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </select>
+            <ChevronDownIcon
+              className="pointer-events-none absolute right-1 top-1/2 size-4 -translate-y-1/2 text-[#666666]"
+              aria-hidden
+            />
+          </div>
         </div>
 
         {isLoading && (
@@ -582,6 +591,28 @@ export default function HistoryPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={showSevenRecordsPopup} onOpenChange={setShowSevenRecordsPopup}>
+        <DialogContent className="sm:max-w-md border-[#E8E2FF] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-center text-[#333333]">
+              7개의 기록이 쌓였어요
+            </DialogTitle>
+            <DialogDescription className="text-center text-[#555555] pt-2">
+              7개의 기록이 쌓여 당신의 패턴을 종합해서 보여드릴 수 있어요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-col pt-4">
+            <Link
+              href="/analysis"
+              onClick={() => setShowSevenRecordsPopup(false)}
+              className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+            >
+              종합분석 바로보기
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

@@ -24,6 +24,7 @@ export default function ObservePage() {
   }, [user?.id])
 
   const isReturningMode = hasCompleted === true
+  const isGuest = !user?.id
 
   return (
     <main className="min-h-screen bg-[#F5F3FA] px-4 py-10 sm:px-6">
@@ -34,7 +35,25 @@ export default function ObservePage() {
           </h1>
         </header>
 
-        {isReturningMode ? (
+        {isGuest ? (
+          <>
+            {/* 비회원: 패턴 돋보기만 강조 */}
+            <section className="rounded-2xl border border-[#E8E2FF] bg-white px-6 py-8 text-center shadow-sm">
+              <h2 className="text-lg font-semibold text-[#333333]">
+                패턴 돋보기 <span aria-hidden="true">🔎</span>
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#555555]">
+                질문을 통해 반응 패턴을 살펴봅니다.
+              </p>
+              <Link
+                href="/pattern"
+                className="mt-6 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+              >
+                패턴 체험 시작
+              </Link>
+            </section>
+          </>
+        ) : isReturningMode ? (
           <>
             {/* 재방문 모드: 테스트 슬림 배너 */}
             <section className="rounded-xl border border-[#E8E2FF] bg-white px-4 py-3 text-center shadow-sm">

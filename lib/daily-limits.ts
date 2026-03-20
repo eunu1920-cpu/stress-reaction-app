@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '@/lib/supabase'
+import { hasManualRecordTodayLocal, hasTestTodayLocal } from '@/lib/storage'
 
 function getTodayKey(): string {
   const d = new Date()
@@ -21,7 +22,7 @@ export async function hasManualRecordToday(userId?: string | null): Promise<bool
       .limit(1)
     return (data?.length ?? 0) > 0
   }
-  return false
+  return hasManualRecordTodayLocal()
 }
 
 export async function hasTestToday(userId?: string | null): Promise<boolean> {
@@ -38,7 +39,7 @@ export async function hasTestToday(userId?: string | null): Promise<boolean> {
       .limit(1)
     return (data?.length ?? 0) > 0
   }
-  return false
+  return hasTestTodayLocal()
 }
 
 const STRESS_TEST_PATTERNS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']

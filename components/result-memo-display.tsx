@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { fetchRecords } from '@/lib/history-storage'
+import { loadRecords } from '@/lib/storage'
 import { useAuth } from '@/lib/auth-context'
 
 type Props = {
@@ -14,7 +14,7 @@ export function ResultMemoDisplay({ resultType }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    fetchRecords(user?.id ?? null).then((records) => {
+    loadRecords(user?.id ?? null).then((records) => {
       if (cancelled) return
       const typeUpper = resultType.toUpperCase()
       const sorted = records

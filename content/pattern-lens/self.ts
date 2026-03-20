@@ -371,4 +371,152 @@ export const selfQuestions: PatternLensQuestion[] = [
       },
     ],
   },
+  {
+    id: 'self_006',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '하루를 온종일 일만 하는 것 같은데 끝이 없고 수입도 불만족스럽지만 계속 일한다.',
+    prompt: '당신의 주된 감정은 무엇인가요?',
+    options: [
+      {
+        id: 'A',
+        label: '방향이 흔들리는 느낌이 든다.',
+        patternCode: 'T3',
+        interpretation: {
+          title: '감정 연결형',
+          summary:
+            '일과 감정이 연결되며 심리적 피로가 커질 수 있다.',
+          body: '',
+          insight:
+            '방향이 흔들리는 느낌은, 감정과 생각이 함께 움직인다는 걸 알게 해줘요. 그 연결이 피로를 키울 수도 있어요.',
+          reflectionQuestion:
+            '지금 느끼는 감정의 시작은 어디인가요?',
+          points: [],
+        },
+      },
+      {
+        id: 'B',
+        label: '계속 같은 생각을 반복한다.',
+        patternCode: 'T5',
+        interpretation: {
+          title: '반복 고민형',
+          summary:
+            '같은 문제를 계속 생각하며 사고가 반복될 수 있다.',
+          body: '',
+          insight:
+            '같은 생각을 반복하는 건, 문제를 깊이 읽으려는 시선이에요. 다만 그 시선이 너무 오래 머물면 갈림길에 서 있을 수 있어요.',
+          reflectionQuestion:
+            '반복되는 생각의 핵심 주제는 무엇인가요?',
+          points: [],
+        },
+      },
+      {
+        id: 'C',
+        label: '머리가 비어 있는 느낌이 든다.',
+        patternCode: 'T8',
+        interpretation: {
+          title: '균형 정리형',
+          summary:
+            '상황을 전체적으로 정리하려는 생각이 나타난다.',
+          body: '',
+          insight:
+            '머리가 비어 있는 느낌은, 상황을 균형 있게 다시 정리하려는 신호일 수 있어요.',
+          reflectionQuestion:
+            '지금 다시 정리해야 할 기준은 무엇인가요?',
+          points: [],
+        },
+      },
+      {
+        id: 'D',
+        label: '감각적 피로가 크게 느껴진다.',
+        patternCode: 'T1',
+        interpretation: {
+          title: '생각 확장형',
+          summary:
+            '일 상황 속에서 다양한 생각이 동시에 떠오르며 감각적 피로가 커질 수 있다.',
+          body: '',
+          insight:
+            '감각적 피로가 크게 느껴지는 건, 생각이 빠르게 확장되는 사고 구조를 가진 사람이라는 걸 알게 해줘요.',
+          reflectionQuestion:
+            '떠오르는 생각 중 가장 중요한 것은 무엇인가요?',
+          points: [],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_007',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '자꾸 작심삼일이 반복될 때',
+    prompt: '당신은 보통 어떤 생각을 하나요?',
+    options: [
+      {
+        id: 'A',
+        label: '계획을 다시 정리하고 구조를 바꿔보려 한다.',
+        patternCode: 'T4',
+        interpretation: {
+          title: '구조 정리형',
+          summary:
+            '목표나 계획이 무너질 때 다시 구조를 정리하려 한다.',
+          body: '',
+          insight:
+            '구조를 바꿔보려는 건, 실패보다 시스템을 수정하는 방식으로 문제를 바라보는 사람이라는 걸 알게 해줘요.',
+          reflectionQuestion:
+            '지금 다시 정리해야 할 구조는 무엇인가요?',
+          points: [],
+        },
+      },
+      {
+        id: 'B',
+        label: '왜 이런 일이 반복되는지 의미를 생각한다.',
+        patternCode: 'T2',
+        interpretation: {
+          title: '의미 탐색형',
+          summary:
+            '반복되는 실패의 이유와 의미를 찾으려 한다.',
+          body: '',
+          insight:
+            '의미를 찾으려는 건, 행동보다 이해를 통해 변화를 만들려는 사람이라는 걸 알게 해줘요.',
+          reflectionQuestion:
+            '이 반복이 나에게 알려주는 메시지는 무엇일까요?',
+          points: [],
+        },
+      },
+      {
+        id: 'C',
+        label: '흐름을 잠시 지켜보며 느낌을 살핀다.',
+        patternCode: 'T7',
+        interpretation: {
+          title: '직관 포착형',
+          summary:
+            '상황을 바로 분석하기보다 흐름과 느낌을 관찰한다.',
+          body: '',
+          insight:
+            '흐름을 지켜보며 느낌을 살피는 건, 생각보다 감각과 직관으로 상황을 파악하는 사람이라는 걸 알게 해줘요.',
+          reflectionQuestion:
+            '지금 내 감각이 알려주는 신호는 무엇인가요?',
+          points: [],
+        },
+      },
+      {
+        id: 'D',
+        label: '스스로에게 거리를 두며 상황을 바라본다.',
+        patternCode: 'T6',
+        interpretation: {
+          title: '거리 두기형',
+          summary:
+            '자신과 상황 사이 거리를 두며 객관적으로 바라본다.',
+          body: '',
+          insight:
+            '거리를 두며 바라보는 건, 감정에 휘둘리기보다 한 걸음 물러나 생각하는 방식이에요.',
+          reflectionQuestion:
+            '지금 잠시 내려놓아야 할 생각은 무엇인가요?',
+          points: [],
+        },
+      },
+    ],
+  },
 ]

@@ -445,4 +445,78 @@ export const stressQuestions: PatternLensQuestion[] = [
       },
     ],
   },
+  {
+    id: 'stress_007',
+    category: 'stress',
+    version: 1,
+    status: 'active',
+    scenario: '승진 경쟁에서 뒤처졌다고 느낄 때',
+    prompt: '당신은 가장 먼저 무엇을 하나요?',
+    options: [
+      {
+        id: 'A',
+        label: '앞으로 어떻게 해야 할지 여러 방향을 생각한다.',
+        patternCode: 'S3',
+        interpretation: {
+          title: '방향이탈형',
+          summary:
+            '경쟁 상황에서 여러 가능성을 동시에 생각하며 방향이 흔들릴 수 있다.',
+          body: '',
+          insight:
+            '여러 방향을 생각하는 건, 당신이 상황을 넓게 바라보는 사람이라는 걸 알게 해줘요.',
+          reflectionQuestion:
+            '방향이 흔들릴 때, 가장 먼저 잡고 싶은 건 무엇인가요?',
+          points: ['방향 사고', '가능성 탐색', '흐름 흔들림'],
+        },
+      },
+      {
+        id: 'B',
+        label: '마음을 닫고 상황을 버티려 한다.',
+        patternCode: 'S5',
+        interpretation: {
+          title: '방어고정형',
+          summary:
+            '경쟁 상황에서 마음을 닫고 버티며 스스로를 보호하려 한다.',
+          body: '',
+          insight:
+            '마음을 닫고 버티는 건 무감각이 아니라, 스스로를 지키려는 가장 단단한 방식이에요.',
+          reflectionQuestion:
+            '버티는 동안, 그 안에서 풀어도 되는 것은 없었나요?',
+          points: ['방어', '버티기', '안정성'],
+        },
+      },
+      {
+        id: 'C',
+        label: '상황을 분석하며 정리하려 한다.',
+        patternCode: 'S4',
+        interpretation: {
+          title: '처리지연형',
+          summary:
+            '상황을 분석하고 정리하려 하지만 행동이 늦어질 수 있다.',
+          body: '',
+          insight:
+            '상황을 정리하려는 건, 당신이 구조 속에서 안전감을 찾는 사람이라는 걸 알게 해줘요.',
+          reflectionQuestion:
+            '정리하는 동안, 그 안에 있던 감정은 어떤 자리에 있었나요?',
+          points: ['상황 분석', '정리', '대응 지연'],
+        },
+      },
+      {
+        id: 'D',
+        label: '잠시 생각이 멈추거나 공백처럼 느껴진다.',
+        patternCode: 'S8',
+        interpretation: {
+          title: '기력방전형',
+          summary:
+            '경쟁 상황에서 순간적으로 생각 흐름이 멈추는 느낌이 나타날 수 있다.',
+          body: '',
+          insight:
+            '생각이 멈추는 건 부족함이 아니라, 정보가 한꺼번에 들어와 잠시 멈춰 선 상태일 수 있어요.',
+          reflectionQuestion:
+            '공백처럼 느껴질 때, 그 빈칸은 정말 비어 있을까요?',
+          points: ['생각 멈춤', '정보 과부하', '정리 필요'],
+        },
+      },
+    ],
+  },
 ]

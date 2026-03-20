@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { fetchRecords } from '@/lib/history-storage'
+import { loadRecords } from '@/lib/storage'
 import { fetchLatestAnalysis } from '@/lib/analysis-storage'
 import { ANALYSIS_BATCH_SIZE, getAnalysisProgress } from '@/lib/analysis-progress'
 
@@ -26,15 +26,12 @@ export function PatternProgressBanner({
       setResolvedCount(currentCount)
     }
 
-    if (!user) {
-      setResolvedCount(0)
-      setRecordsAtLastAnalysis(null)
-      return
-    }
-
     let cancelled = false
 
-    Promise.all([fetchRecords(user.id), fetchLatestAnalysis(user.id)]).then(([records, latestAnalysis]) => {
+    Promise.all([
+      loadRecords(user?.id ?? null),
+      user?.id ? fetchLatestAnalysis(user.id) : Promise.resolve(null),
+    ]).then(([records, latestAnalysis]) => {
       if (cancelled) return
       if (typeof currentCount !== 'number') {
         setResolvedCount(records.length)
@@ -51,8 +48,6 @@ export function PatternProgressBanner({
     () => getAnalysisProgress(resolvedCount, recordsAtLastAnalysis).progressCount,
     [recordsAtLastAnalysis, resolvedCount]
   )
-
-  if (!user) return null
 
   return (
     <div className="mt-3 px-4">

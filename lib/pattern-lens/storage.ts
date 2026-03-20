@@ -1,7 +1,7 @@
 'use client'
 
 import { supabase } from '@/lib/supabase'
-import { saveRecord } from '@/lib/save-record'
+import { saveData } from '@/lib/storage'
 import {
   getPatternLensQuestionById,
   getPatternLensQuestions,
@@ -275,8 +275,8 @@ export async function savePatternLensResponse(params: {
     return { responseId: null }
   }
 
-  const saveOk = await saveRecord({
-    userId: params.userId,
+  const saveOk = await saveData(
+    {
     category: params.category,
     pattern: 'pattern_lens',
     sourceKind: 'pattern_lens',
@@ -295,7 +295,9 @@ export async function savePatternLensResponse(params: {
     summary: params.option.interpretation.summary,
     resultType: params.option.patternCode,
     memo: params.option.interpretation.body,
-  })
+  },
+    params.userId
+  )
 
   if (!saveOk) {
     console.error('[records] save failed for pattern lens response')

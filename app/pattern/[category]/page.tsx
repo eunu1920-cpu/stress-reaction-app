@@ -20,6 +20,7 @@ import {
 import type { PatternLensResponseSnapshot } from '@/lib/pattern-lens/storage'
 import type { PatternLensCategory, PatternLensOption, PatternLensQuestion } from '@/lib/pattern-lens/types'
 import { useAuth } from '@/lib/auth-context'
+import { saveData } from '@/lib/storage'
 import { toBlob } from 'html-to-image'
 import { toast } from 'sonner'
 import { TimedSelectionOptions } from '@/components/timed-selection-options'
@@ -379,6 +380,45 @@ export default function PatternCategoryPage() {
 
   const handleTrialNext = useCallback(() => {
     if (state.status !== 'ready' || !state.isTrial || !state.question || !category) return
+    const option = selectedOptionId
+      ? state.question.options.find((o) => o.id === selectedOptionId)
+      : null
+    if (option) {
+      const snapshot = {
+        scenario: state.question.scenario,
+        prompt: state.question.prompt,
+        selectedLabel: option.label,
+        interpretationTitle: option.interpretation.title,
+        interpretationSummary: option.interpretation.summary,
+        interpretationBody: option.interpretation.body,
+        interpretationInsight: option.interpretation.insight,
+        reflectionQuestion: option.interpretation.reflectionQuestion,
+        interpretationPoints: option.interpretation.points ?? [],
+      }
+      void saveData(
+        {
+          category,
+          pattern: 'pattern_lens',
+          sourceKind: 'pattern_lens',
+          patternCode: option.patternCode,
+          questionId: state.question.id,
+          optionId: option.id,
+          questionVersion: state.question.version,
+          sourceSnapshot: snapshot,
+          situationTags: [state.question.scenario],
+          bodyReactionTags: [option.label],
+          behaviorTags: [option.interpretation.title],
+          content: option.interpretation.body,
+          q1: JSON.stringify([state.question.scenario]),
+          q2: JSON.stringify([option.label]),
+          q3: JSON.stringify([option.interpretation.title]),
+          summary: option.interpretation.summary,
+          resultType: option.patternCode,
+          memo: option.interpretation.body,
+        },
+        null
+      )
+    }
     const anonymousId = getOrCreateAnonymousId()
     addTrialAnswered(anonymousId, category, state.question.id)
     const answered = getTrialAnswered(anonymousId)[category] ?? []
@@ -397,7 +437,7 @@ export default function PatternCategoryPage() {
       existingResponse: null,
       isTrial: true,
     })
-  }, [state.status, state.isTrial, 'question' in state ? state.question?.id : undefined, category, trialQuestions])
+  }, [state.status, state.isTrial, 'question' in state ? state.question : undefined, category, trialQuestions, selectedOptionId])
 
   useEffect(() => {
     if (state.isTrial && activeResponse && !isPreviewMode && !resultSoundPlayedRef.current) {
@@ -504,7 +544,7 @@ export default function PatternCategoryPage() {
   const showResultFooter = state.status === 'ready' && !!activeResponse
 
   return (
-      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter ? 'pb-24' : ''}`}>
+      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter && user ? 'pb-24' : ''}`}>
         <div className="mx-auto flex w-full max-w-md flex-col gap-6">
           <div className="text-center">
             <p className="text-sm font-medium text-[#8E7CFF]">{CATEGORY_LABELS[category]}</p>
@@ -521,20 +561,6 @@ export default function PatternCategoryPage() {
                 <br />
                 <span className="text-[#666666]">나중에 로그인하시면, 지금까지의 패턴이 모여 &apos;개인 히스토리&apos;와 누적된 &apos;당신의 패턴보고서&apos;를 보여드릴 수 있어요.</span>
               </p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <Link
-                  href="/history"
-                  className="text-sm font-medium text-[#8E7CFF] hover:underline underline-offset-2"
-                >
-                  히스토리
-                </Link>
-                <Link
-                  href="/analysis"
-                  className="text-sm font-medium text-[#8E7CFF] hover:underline underline-offset-2"
-                >
-                  종합분석
-                </Link>
-              </div>
               <p className="mt-2 text-xs text-[#777777]">
                 {(trialQuestions.findIndex((q) => q.id === state.question?.id) + 1) || 1} / {trialQuestions.length}
               </p>
@@ -619,10 +645,10 @@ export default function PatternCategoryPage() {
               </p>
               <div className="mt-5 flex flex-col gap-3">
                 <Link
-                  href="/pattern"
+                  href="/history"
                   className="inline-flex items-center justify-center rounded-2xl border border-[#DDD4FF] bg-white px-5 py-3 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
                 >
-                  다른 카테고리 둘러보기
+                  내 히스토리 다시보기
                 </Link>
                 <TrialLoginButton />
               </div>
@@ -789,7 +815,7 @@ export default function PatternCategoryPage() {
                 다음 질문 →
               </button>
             )}
-            {!showResultFooter && (
+            {!showResultFooter && user && (
               <Link
                 href="/pattern"
                 className="text-sm font-medium text-[#666666] transition-colors hover:text-[#5a4bb5]"
@@ -799,7 +825,7 @@ export default function PatternCategoryPage() {
             )}
           </div>
 
-          {showResultFooter && (
+          {showResultFooter && user && (
             <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
               <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
                 <Link

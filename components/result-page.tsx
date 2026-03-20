@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation'
 import { RotateCcw } from 'lucide-react'
 import { getResultData, type TestType } from '@/lib/result-registry'
 import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
-import { fetchRecords, updateRecordContent } from '@/lib/history-storage'
-import { saveRecord } from '@/lib/save-record'
+import { saveData, loadRecords, updateRecordMemo } from '@/lib/storage'
 import { useAuth } from '@/lib/auth-context'
 import { Textarea } from '@/components/ui/textarea'
 import { ResultMemoSection } from '@/components/result-memo-section'
@@ -61,17 +60,19 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
     const signature = `${q1Answer}|${q2Answer}|${q3Answer}`
     if (lastSavedSignatureRef.current === signature) return
     lastSavedSignatureRef.current = signature
-    void saveRecord({
-      userId: user?.id ?? null,
-      category: 'test',
-      pattern: type,
-      content: q2Data.oneLine,
-      q1: q1Answer,
-      q2: q2Answer,
-      q3: q3Answer,
-      summary: q2Data.oneLine,
-      resultType: type,
-    })
+    void saveData(
+      {
+        category: 'test',
+        pattern: type,
+        content: q2Data.oneLine,
+        q1: q1Answer,
+        q2: q2Answer,
+        q3: q3Answer,
+        summary: q2Data.oneLine,
+        resultType: type,
+      },
+      user?.id ?? null
+    )
   }, [hasFullData, q1Answer, q2Answer, q3Answer, q2Data, type, user?.id])
 
   // 인사이트 랜덤
@@ -114,11 +115,7 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   }
 
   const handleSaveMemo = async () => {
-    if (!user?.id) {
-      setLoginModalOpen(true)
-      return
-    }
-    const records = await fetchRecords(user.id)
+    const records = await loadRecords(user?.id ?? null)
     const typeUpper = type.toUpperCase()
     const sorted = records
       .slice()
@@ -127,20 +124,22 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
       (r) => (r.resultType || '').toUpperCase() === typeUpper
     )
     if (match) {
-      await updateRecordContent(match.id, memo.trim() || '')
+      await updateRecordMemo(match.id, memo.trim() || '', user?.id ?? null)
     } else {
-      await saveRecord({
-        userId: user.id,
-        category: 'test',
-        pattern: type,
-        content: memo.trim() || q2Data.oneLine,
-        q1: q1Answer,
-        q2: q2Answer,
-        q3: q3Answer,
-        summary: q2Data.oneLine,
-        resultType: type,
-        memo: memo.trim() || undefined,
-      })
+      await saveData(
+        {
+          category: 'test',
+          pattern: type,
+          content: memo.trim() || q2Data.oneLine,
+          q1: q1Answer,
+          q2: q2Answer,
+          q3: q3Answer,
+          summary: q2Data.oneLine,
+          resultType: type,
+          memo: memo.trim() || undefined,
+        },
+        user?.id ?? null
+      )
     }
     setMemo('')
     setMemoSaved(true)
