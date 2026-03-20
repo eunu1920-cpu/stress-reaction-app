@@ -48,23 +48,24 @@ export function AppNav() {
         >
           MyView
         </Link>
-        {navItems.map(({ href, label, shortLabel }) => {
-          const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors sm:px-4 ${
-                isActive
-                  ? 'bg-[#8E7CFF] text-white'
-                  : 'text-[#333333] hover:bg-[#E8E2FF] hover:text-[#5a4bb5]'
-              }`}
-            >
-              <span className="md:hidden">{shortLabel}</span>
-              <span className="hidden md:inline">{label}</span>
-            </Link>
-          )
-        })}
+        {displayUser &&
+          navItems.map(({ href, label, shortLabel }) => {
+            const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors sm:px-4 ${
+                  isActive
+                    ? 'bg-[#8E7CFF] text-white'
+                    : 'text-[#333333] hover:bg-[#E8E2FF] hover:text-[#5a4bb5]'
+                }`}
+              >
+                <span className="md:hidden">{shortLabel}</span>
+                <span className="hidden md:inline">{label}</span>
+              </Link>
+            )
+          })}
         <div className="ml-auto flex items-center gap-1">
           {displayUser ? (
             <>
@@ -112,9 +113,10 @@ export function AppNav() {
             <button
               type="button"
               onClick={() => setLoginModalOpen(true)}
-              className="rounded-lg px-4 py-2 text-sm font-semibold bg-[#8E7CFF] text-white hover:bg-[#7D6BEE] transition-colors"
+              className="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold bg-[#8E7CFF] text-white hover:bg-[#7D6BEE] transition-colors sm:px-4"
             >
-              로그인 / 회원가입
+              <span className="sm:hidden">로그인</span>
+              <span className="hidden sm:inline">로그인 / 회원가입</span>
             </button>
           )}
         </div>
