@@ -72,6 +72,11 @@ async function getTodayAssignment(
   return (existing as AssignmentRow | null) ?? null
 }
 
+function pickRandom<T>(arr: T[]): T | undefined {
+  if (arr.length === 0) return undefined
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
 async function selectTodayQuestion(
   userId: string,
   category: PatternLensCategory
@@ -86,7 +91,8 @@ async function selectTodayQuestion(
     .eq('category', category)
 
   const answeredIds = new Set((answeredRows ?? []).map((row) => String(row.question_id)))
-  return questions.find((question) => !answeredIds.has(question.id)) ?? null
+  const unanswered = questions.filter((question) => !answeredIds.has(question.id))
+  return pickRandom(unanswered) ?? null
 }
 
 export async function fetchTodayPatternCategoryChoice(
@@ -315,6 +321,105 @@ export async function savePatternLensResponse(params: {
 
   if (assignmentError) {
     console.error('[question_assignments] answer update failed:', assignmentError.message)
+  }
+
+  return { responseId: responseRow.id as string }
+}
+
+/** 랜덤 제공 모드: assignment 없이 질문 선택 (로그인 유저용) */
+export async function getRandomPatternQuestion(
+  userId: string,
+  category: PatternLensCategory
+): Promise<PatternLensQuestion | null> {
+  const questions = getPatternLensQuestions(category)
+  if (questions.length === 0) return null
+
+  const { data: answeredRows } = await supabase
+    .from('question_responses')
+    .select('question_id')
+    .eq('user_id', userId)
+    .eq('category', category)
+
+  const answeredIds = new Set((answeredRows ?? []).map((row) => String(row.question_id)))
+  const unanswered = questions.filter((q) => !answeredIds.has(q.id))
+
+  const pool = unanswered.length > 0 ? unanswered : questions
+  return pickRandom(pool) ?? null
+}
+
+/** assignment 없이 저장 (랜덤 모드용) */
+export async function savePatternLensResponseStandalone(params: {
+  userId: string
+  category: PatternLensCategory
+  question: PatternLensQuestion
+  option: PatternLensOption
+}): Promise<{ responseId: string | null }> {
+  const snapshot: PatternLensResponseSnapshot = {
+    scenario: params.question.scenario,
+    prompt: params.question.prompt,
+    selectedLabel: params.option.label,
+    interpretationTitle: params.option.interpretation.title,
+    interpretationSummary: params.option.interpretation.summary,
+    interpretationBody: params.option.interpretation.body,
+    interpretationInsight: params.option.interpretation.insight,
+    reflectionQuestion: params.option.interpretation.reflectionQuestion,
+    interpretationPoints: params.option.interpretation.points,
+  }
+
+  const { count } = await supabase
+    .from('question_responses')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', params.userId)
+    .eq('question_id', params.question.id)
+
+  const isRetry = (count ?? 0) > 0
+
+  const { data: responseRow, error: responseError } = await supabase
+    .from('question_responses')
+    .insert({
+      user_id: params.userId,
+      question_id: params.question.id,
+      category: params.category,
+      option_id: params.option.id,
+      pattern_code: params.option.patternCode,
+      question_version: params.question.version,
+      display_snapshot: snapshot,
+      is_retry: isRetry,
+    })
+    .select('id')
+    .single()
+
+  if (responseError || !responseRow) {
+    console.error('[question_responses] insert failed:', responseError?.message)
+    return { responseId: null }
+  }
+
+  const saveOk = await saveData(
+    {
+      category: params.category,
+      pattern: 'pattern_lens',
+      sourceKind: 'pattern_lens',
+      patternCode: params.option.patternCode,
+      questionId: params.question.id,
+      optionId: params.option.id,
+      questionVersion: params.question.version,
+      sourceSnapshot: snapshot,
+      situationTags: [params.question.scenario],
+      bodyReactionTags: [params.option.label],
+      behaviorTags: [params.option.interpretation.title],
+      content: params.option.interpretation.body,
+      q1: JSON.stringify([params.question.scenario]),
+      q2: JSON.stringify([params.option.label]),
+      q3: JSON.stringify([params.option.interpretation.title]),
+      summary: params.option.interpretation.summary,
+      resultType: params.option.patternCode,
+      memo: params.option.interpretation.body,
+    },
+    params.userId
+  )
+
+  if (!saveOk) {
+    console.error('[records] save failed for pattern lens response')
   }
 
   return { responseId: responseRow.id as string }

@@ -297,11 +297,15 @@ export default function RecordPage() {
         setQuestionSubmitting(false)
         return
       }
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
       const res = await fetch('/api/question-submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ content: text }),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
         toast.error(json?.error ?? '제출에 실패했습니다.')
@@ -311,8 +315,12 @@ export default function RecordPage() {
       toast.success('제출되었습니다. 관리자가 검토 후 편집해 드려요.')
       setQuestionText('')
       setQuestionExpand(false)
-    } catch {
-      toast.error('제출에 실패했습니다.')
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        toast.error('제출 시간이 초과되었습니다. 네트워크를 확인 후 다시 시도해주세요.')
+      } else {
+        toast.error('제출에 실패했습니다.')
+      }
     }
     setQuestionSubmitting(false)
   }

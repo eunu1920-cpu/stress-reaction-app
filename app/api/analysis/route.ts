@@ -7,6 +7,7 @@ type RecordInput = {
   bodyReactionTags?: string[]
   behaviorTags?: string[]
   content?: string
+  sourceKind?: string
 }
 
 function formatRecordsForPrompt(records: RecordInput[]): string {
@@ -16,8 +17,10 @@ function formatRecordsForPrompt(records: RecordInput[]): string {
       const situation = (r.situationTags ?? []).filter(Boolean).join(', ') || '-'
       const bodyReaction = (r.bodyReactionTags ?? []).filter(Boolean).join(', ') || '-'
       const behavior = (r.behaviorTags ?? []).filter(Boolean).join(', ') || '-'
-      const content = (r.content ?? '').trim() || '(내용 없음)'
-      return `[기록 ${i + 1}] ${date}
+      const isManual = r.sourceKind === 'manual_record'
+      const content = (r.content ?? '').trim() || (isManual ? '(내용 없음)' : '(태그 기반 응답)')
+      const label = isManual ? '[직접 기록]' : '[질문 응답]'
+      return `[기록 ${i + 1}] ${label} ${date}
 상황 태그: ${situation}
 몸 반응 태그: ${bodyReaction}
 행동 태그: ${behavior}
@@ -85,6 +88,20 @@ export async function POST(request: Request) {
 
     const recordsText = formatRecordsForPrompt(records)
 
+    const hasDirectContent = records.some(
+      (r) =>
+        r.sourceKind === 'manual_record' && (r.content ?? '').trim().length > 15
+    )
+    const insufficientRecordNotice = !hasDirectContent
+      ? `
+
+⚠️ 이 기록들은 질문에 대한 응답(태그) 위주이며, 사용자가 직접 작성한 기록 내용이 충분하지 않습니다.
+다음 규칙을 반드시 적용하세요:
+1. [현재 패턴] 바로 아래에 한 줄로 이 문구를 포함하세요: "기록이 충분하지 않아 해석 내용에는 사실과 차이가 있을 수 있습니다."
+2. [관찰]과 [통찰]에서는 상황을 단정하지 말고 "~한 경우에는", "~했다면 ~일 수 있습니다" 등 가능성·조건으로 표현하세요. 질문 응답(태그)만으로는 맥락이 제한적이므로 추측을 사실처럼 서술하지 마세요.
+3. 질문 문구나 태그 텍스트를 [관찰]에 그대로 인용·복사하지 마세요. 태그 기반으로 추론한 가능성만 간단히 표현하세요.`
+      : ''
+
     const previousContext = previousAnalysis
       ? `
 
@@ -118,6 +135,7 @@ ${STRESS_TYPES}
 
 [관찰]
 최근 기록에서 반복되는 상황, 몸 반응, 행동 패턴을 정리하세요.
+[직접 기록]의 기록 내용을 우선적으로 반영하세요. [질문 응답]은 태그만 참고하고, 해석 문구를 [관찰]에 그대로 사용하지 마세요.
 태그뿐 아니라 사용자가 작성한 기록 내용의 맥락도 함께 반영하세요.
 3~4문장 이내로 작성하세요.
 
@@ -154,7 +172,7 @@ ${ACTION_COACH_RULES}
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `기록 데이터 (총 ${records.length}건):\n\n${recordsText}${previousContext}`,
+          content: `기록 데이터 (총 ${records.length}건):\n\n${recordsText}${insufficientRecordNotice}${previousContext}`,
         },
       ],
     })

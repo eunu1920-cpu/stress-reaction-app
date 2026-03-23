@@ -377,7 +377,7 @@ export const selfQuestions: PatternLensQuestion[] = [
     version: 1,
     status: 'active',
     scenario: '하루를 온종일 일만 하는 것 같은데 끝이 없고 수입도 불만족스럽지만 계속 일한다.',
-    prompt: '당신의 주된 감정은 무엇인가요?',
+    prompt: '당신의 주된 감정은 무엇인가?',
     options: [
       {
         id: 'A',
@@ -389,10 +389,10 @@ export const selfQuestions: PatternLensQuestion[] = [
             '일과 감정이 연결되며 심리적 피로가 커질 수 있다.',
           body: '',
           insight:
-            '방향이 흔들리는 느낌은, 감정과 생각이 함께 움직인다는 걸 알게 해줘요. 그 연결이 피로를 키울 수도 있어요.',
+            '당신은 감정과 생각이 함께 움직이는 사고 구조를 가지고 있다.',
           reflectionQuestion:
-            '지금 느끼는 감정의 시작은 어디인가요?',
-          points: [],
+            '지금 내가 느끼는 감정의 시작은 어디인가요?',
+          points: ['감정 연결', '방향 감각', '심리적 피로'],
         },
       },
       {
@@ -405,10 +405,10 @@ export const selfQuestions: PatternLensQuestion[] = [
             '같은 문제를 계속 생각하며 사고가 반복될 수 있다.',
           body: '',
           insight:
-            '같은 생각을 반복하는 건, 문제를 깊이 읽으려는 시선이에요. 다만 그 시선이 너무 오래 머물면 갈림길에 서 있을 수 있어요.',
+            '당신은 문제를 깊이 생각하는 사고를 가진 사람이다.',
           reflectionQuestion:
-            '반복되는 생각의 핵심 주제는 무엇인가요?',
-          points: [],
+            '지금 반복되는 생각의 핵심 주제는 무엇인가요?',
+          points: ['반복 사고', '깊은 고민', '핵심 주제'],
         },
       },
       {
@@ -416,15 +416,15 @@ export const selfQuestions: PatternLensQuestion[] = [
         label: '머리가 비어 있는 느낌이 든다.',
         patternCode: 'T8',
         interpretation: {
-          title: '균형 정리형',
+          title: '균형 관점형',
           summary:
             '상황을 전체적으로 정리하려는 생각이 나타난다.',
           body: '',
           insight:
-            '머리가 비어 있는 느낌은, 상황을 균형 있게 다시 정리하려는 신호일 수 있어요.',
+            '당신은 상황을 균형 있게 바라보려는 사고를 가지고 있다.',
           reflectionQuestion:
-            '지금 다시 정리해야 할 기준은 무엇인가요?',
-          points: [],
+            '지금 내가 다시 정리해야 할 기준은 무엇인가요?',
+          points: ['상황 정리', '균형 시선', '기준 재설정'],
         },
       },
       {
@@ -434,13 +434,13 @@ export const selfQuestions: PatternLensQuestion[] = [
         interpretation: {
           title: '생각 확장형',
           summary:
-            '일 상황 속에서 다양한 생각이 동시에 떠오르며 감각적 피로가 커질 수 있다.',
+            '일 상황 속에서 다양한 생각이 동시에 떠오를 수 있다.',
           body: '',
           insight:
-            '감각적 피로가 크게 느껴지는 건, 생각이 빠르게 확장되는 사고 구조를 가진 사람이라는 걸 알게 해줘요.',
+            '당신은 생각 확장이 빠른 사고 구조를 가지고 있다.',
           reflectionQuestion:
-            '떠오르는 생각 중 가장 중요한 것은 무엇인가요?',
-          points: [],
+            '지금 떠오르는 생각 중 가장 중요한 것은 무엇인가요?',
+          points: ['생각 확장', '감각적 피로', '핵심 파악'],
         },
       },
     ],
@@ -463,10 +463,10 @@ export const selfQuestions: PatternLensQuestion[] = [
             '목표나 계획이 무너질 때 다시 구조를 정리하려 한다.',
           body: '',
           insight:
-            '구조를 바꿔보려는 건, 실패보다 시스템을 수정하는 방식으로 문제를 바라보는 사람이라는 걸 알게 해줘요.',
+            '당신은 실패보다 시스템을 수정하는 방식으로 문제를 바라본다.',
           reflectionQuestion:
-            '지금 다시 정리해야 할 구조는 무엇인가요?',
-          points: [],
+            '지금 내가 다시 정리해야 할 구조는 무엇인가요?',
+          points: ['구조 정리', '시스템 수정', '계획 재설계'],
         },
       },
       {
@@ -479,10 +479,10 @@ export const selfQuestions: PatternLensQuestion[] = [
             '반복되는 실패의 이유와 의미를 찾으려 한다.',
           body: '',
           insight:
-            '의미를 찾으려는 건, 행동보다 이해를 통해 변화를 만들려는 사람이라는 걸 알게 해줘요.',
+            '당신은 행동보다 이해를 통해 변화를 만들려는 사람이다.',
           reflectionQuestion:
             '이 반복이 나에게 알려주는 메시지는 무엇일까요?',
-          points: [],
+          points: ['의미 탐색', '이해 지향', '변화 시도'],
         },
       },
       {
@@ -495,10 +495,10 @@ export const selfQuestions: PatternLensQuestion[] = [
             '상황을 바로 분석하기보다 흐름과 느낌을 관찰한다.',
           body: '',
           insight:
-            '흐름을 지켜보며 느낌을 살피는 건, 생각보다 감각과 직관으로 상황을 파악하는 사람이라는 걸 알게 해줘요.',
+            '당신은 생각보다 감각과 직관으로 상황을 파악한다.',
           reflectionQuestion:
             '지금 내 감각이 알려주는 신호는 무엇인가요?',
-          points: [],
+          points: ['흐름 관찰', '직관 파악', '감각 신호'],
         },
       },
       {
@@ -511,10 +511,898 @@ export const selfQuestions: PatternLensQuestion[] = [
             '자신과 상황 사이 거리를 두며 객관적으로 바라본다.',
           body: '',
           insight:
-            '거리를 두며 바라보는 건, 감정에 휘둘리기보다 한 걸음 물러나 생각하는 방식이에요.',
+            '당신은 감정에 휘둘리기보다 한 걸음 물러나 생각한다.',
           reflectionQuestion:
-            '지금 잠시 내려놓아야 할 생각은 무엇인가요?',
-          points: [],
+            '지금 내가 잠시 내려놓아야 할 생각은 무엇인가요?',
+          points: ['거리 두기', '객관적 시선', '생각 정리'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_008',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '갑자기 나에게 책임과 의무가 많다는 생각이 들 때',
+    prompt: '당신은 어떤 생각을 하나요?',
+    options: [
+      {
+        id: 'A',
+        label: '감정과 생각이 연결되며 부담을 느낀다.',
+        patternCode: 'T3',
+        interpretation: {
+          title: '감정 연결형',
+          summary:
+            '책임에 대한 생각이 감정과 연결되며 무게가 커진다.',
+          body: '',
+          insight:
+            '당신은 책임을 감정적으로 깊이 받아들이는 사람이다.',
+          reflectionQuestion:
+            '지금 내 감정과 연결된 책임은 무엇인가요?',
+          points: ['감정 연결', '책임 부담', '심리적 무게'],
+        },
+      },
+      {
+        id: 'B',
+        label: '같은 생각을 계속 반복하며 고민한다.',
+        patternCode: 'T5',
+        interpretation: {
+          title: '반복 고민형',
+          summary:
+            '책임과 의무에 대한 생각이 머릿속에서 계속 반복된다.',
+          body: '',
+          insight:
+            '당신은 문제를 쉽게 넘기지 않는 깊은 사고를 가진 사람이다.',
+          reflectionQuestion:
+            '지금 반복되는 생각의 핵심은 무엇인가요?',
+          points: ['반복 사고', '깊은 고민', '핵심 파악'],
+        },
+      },
+      {
+        id: 'C',
+        label: '상황을 정리하며 해야 할 일을 구조화한다.',
+        patternCode: 'T4',
+        interpretation: {
+          title: '구조 정리형',
+          summary:
+            '해야 할 일을 정리하며 현실적으로 대응하려 한다.',
+          body: '',
+          insight:
+            '당신은 책임을 관리 가능한 구조로 바꾸려는 사람이다.',
+          reflectionQuestion:
+            '지금 내가 먼저 정리해야 할 일은 무엇인가요?',
+          points: ['구조 정리', '일 목록화', '현실적 대응'],
+        },
+      },
+      {
+        id: 'D',
+        label: '전체 상황을 균형 있게 정리하려 한다.',
+        patternCode: 'T8',
+        interpretation: {
+          title: '균형 관점형',
+          summary:
+            '전체 상황을 바라보며 책임의 균형을 맞추려 한다.',
+          body: '',
+          insight:
+            '당신은 감정과 현실 사이 균형을 찾는 사고를 한다.',
+          reflectionQuestion:
+            '지금 내가 균형을 맞춰야 할 부분은 무엇인가요?',
+          points: ['균형 정리', '책임 조율', '감정과 현실'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_009',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '내가 잘하는 것도 없고 무엇을 좋아하는지도 모르겠다고 느낄 때',
+    prompt: '어떤 생각이 드나요?',
+    options: [
+      {
+        id: 'A',
+        label: '새로운 가능성을 계속 떠올린다.',
+        patternCode: 'T1',
+        interpretation: {
+          title: '생각 확장형',
+          summary:
+            '현재보다 다양한 가능성을 계속 떠올린다.',
+          body: '',
+          insight:
+            '당신은 아직 방향이 정해지지 않았을 뿐 가능성을 많이 보는 사람이다.',
+          reflectionQuestion:
+            '지금 떠오르는 가능성 중 가장 끌리는 것은 무엇인가요?',
+          points: ['가능성 탐색', '생각 확장', '방향 찾기'],
+        },
+      },
+      {
+        id: 'B',
+        label: '자신과 상황 사이 거리를 두고 바라본다.',
+        patternCode: 'T6',
+        interpretation: {
+          title: '거리 두기형',
+          summary:
+            '자신을 객관적으로 바라보며 상황을 분석하려 한다.',
+          body: '',
+          insight:
+            '당신은 감정에 빠지기보다 한 걸음 떨어져 생각한다.',
+          reflectionQuestion:
+            '지금 나를 너무 엄격하게 평가하고 있지는 않나요?',
+          points: ['객관적 시선', '거리 두기', '자기 평가'],
+        },
+      },
+      {
+        id: 'C',
+        label: '내 감각과 직관을 관찰한다.',
+        patternCode: 'T7',
+        interpretation: {
+          title: '직관 포착형',
+          summary:
+            '논리보다 느낌과 감각을 통해 방향을 찾으려 한다.',
+          body: '',
+          insight:
+            '당신은 자신의 감각을 통해 길을 발견하는 사람이다.',
+          reflectionQuestion:
+            '지금 내 감각이 좋아한다고 말하는 것은 무엇인가요?',
+          points: ['감각 관찰', '직관 탐색', '방향 발견'],
+        },
+      },
+      {
+        id: 'D',
+        label: '내가 원하는 삶의 의미를 생각한다.',
+        patternCode: 'T2',
+        interpretation: {
+          title: '의미 탐색형',
+          summary:
+            '내가 무엇을 위해 살고 싶은지 의미를 찾으려 한다.',
+          body: '',
+          insight:
+            '당신은 삶의 방향을 의미 중심으로 찾는다.',
+          reflectionQuestion:
+            '지금 내가 진짜 중요하게 생각하는 가치는 무엇인가요?',
+          points: ['의미 탐색', '가치 발견', '삶의 방향'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_010',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '나에게 딱 맞는 직업을 찾고 싶다고 느낄 때',
+    prompt: '당신은 어떤 생각을 하나요?',
+    options: [
+      {
+        id: 'A',
+        label: '여러 가능성을 고민하며 계속 생각한다.',
+        patternCode: 'T5',
+        interpretation: {
+          title: '반복 고민형',
+          summary:
+            '직업 문제를 계속 고민하며 답을 찾으려 한다.',
+          body: '',
+          insight:
+            '당신은 삶의 방향을 쉽게 결정하지 않는 깊은 사고형이다.',
+          reflectionQuestion:
+            '지금 내가 반복해서 떠올리는 직업 방향은 무엇인가요?',
+          points: ['깊은 고민', '방향 탐색', '결정 유보'],
+        },
+      },
+      {
+        id: 'B',
+        label: '내 삶 전체의 균형을 생각한다.',
+        patternCode: 'T8',
+        interpretation: {
+          title: '균형 관점형',
+          summary:
+            '일, 삶, 가치의 균형 속에서 직업을 바라본다.',
+          body: '',
+          insight:
+            '당신은 직업을 단순한 일이 아닌 삶의 구조로 본다.',
+          reflectionQuestion:
+            '내가 원하는 삶의 균형은 무엇인가요?',
+          points: ['삶의 균형', '가치 조율', '구조적 시선'],
+        },
+      },
+      {
+        id: 'C',
+        label: '현실적인 계획을 정리한다.',
+        patternCode: 'T4',
+        interpretation: {
+          title: '구조 정리형',
+          summary:
+            '현실 조건을 정리하며 직업 방향을 찾는다.',
+          body: '',
+          insight:
+            '당신은 실행 가능한 계획을 중요하게 생각한다.',
+          reflectionQuestion:
+            '지금 내가 만들 수 있는 가장 현실적인 계획은 무엇인가요?',
+          points: ['현실 정리', '계획 수립', '실행 가능성'],
+        },
+      },
+      {
+        id: 'D',
+        label: '새로운 가능성을 탐색한다.',
+        patternCode: 'T1',
+        interpretation: {
+          title: '생각 확장형',
+          summary:
+            '다양한 가능성을 떠올리며 새로운 길을 탐색한다.',
+          body: '',
+          insight:
+            '당신은 틀에 갇히지 않는 사고를 가진 사람이다.',
+          reflectionQuestion:
+            '내가 아직 시도해보지 않은 가능성은 무엇인가요?',
+          points: ['가능성 탐색', '새로운 길', '생각 확장'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_011',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '주변 사람들이 다 잘 나가는 것 같아 상대적으로 초라하게 느껴질 때',
+    prompt: '당신은 어떤 생각을 하나요?',
+    options: [
+      {
+        id: 'A',
+        label: '내 상황을 분석하며 무엇이 다른지 정리해 본다.',
+        patternCode: 'T4',
+        interpretation: {
+          title: '구조 정리형',
+          summary:
+            '상황을 분석하고 구조적으로 이해하려 한다.',
+          body: '',
+          insight:
+            '당신은 감정보다 구조로 상황을 이해하는 사람이다.',
+          reflectionQuestion:
+            '내가 지금 비교하고 있는 기준은 무엇일까?',
+          points: ['상황 분석', '구조적 이해', '비교 기준'],
+        },
+      },
+      {
+        id: 'B',
+        label: '내가 무엇을 잘못했는지 계속 고민하게 된다.',
+        patternCode: 'T5',
+        interpretation: {
+          title: '반복 고민형',
+          summary:
+            '문제의 원인을 계속 생각하며 고민을 반복한다.',
+          body: '',
+          insight:
+            '당신은 문제를 깊이 파고드는 사고 패턴을 가지고 있다.',
+          reflectionQuestion:
+            '이 고민은 해결로 가고 있을까, 반복되고 있을까?',
+          points: ['반복 고민', '원인 탐색', '사고 패턴'],
+        },
+      },
+      {
+        id: 'C',
+        label: '여러 상황을 균형 있게 생각하려 한다.',
+        patternCode: 'T8',
+        interpretation: {
+          title: '균형 관점형',
+          summary:
+            '상황을 한쪽으로 판단하지 않고 균형 있게 보려 한다.',
+          body: '',
+          insight:
+            '당신은 다양한 관점을 동시에 고려하는 사고를 가진다.',
+          reflectionQuestion:
+            '지금 내가 놓치고 있는 관점은 무엇일까?',
+          points: ['균형 시선', '다양한 관점', '판단 유보'],
+        },
+      },
+      {
+        id: 'D',
+        label: '새로운 방향이나 가능성을 떠올린다.',
+        patternCode: 'T1',
+        interpretation: {
+          title: '생각 확장형',
+          summary:
+            '상황 속에서 새로운 가능성과 방향을 떠올린다.',
+          body: '',
+          insight:
+            '당신은 생각 확장을 통해 길을 찾는 사람이다.',
+          reflectionQuestion:
+            '지금 이 상황에서 새롭게 시도할 수 있는 것은 무엇일까?',
+          points: ['가능성 탐색', '생각 확장', '새로운 시도'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_012',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '오랫동안 노력했는데 성과가 거의 없는 것처럼 느껴질 때',
+    prompt: '당신은 어떤 생각을 하나요?',
+    options: [
+      {
+        id: 'A',
+        label: '다른 방향이나 가능성을 다시 떠올린다.',
+        patternCode: 'T1',
+        interpretation: {
+          title: '생각 확장형',
+          summary:
+            '한 상황에서 다양한 가능성을 떠올린다.',
+          body: '',
+          insight:
+            '당신은 생각 확장을 통해 새로운 길을 찾는 사람이다.',
+          reflectionQuestion:
+            '지금 다른 방향을 시도할 수 있을까?',
+          points: ['가능성 탐색', '방향 전환', '생각 확장'],
+        },
+      },
+      {
+        id: 'B',
+        label: '상황을 균형 있게 보며 의미를 다시 정리한다.',
+        patternCode: 'T8',
+        interpretation: {
+          title: '균형 관점형',
+          summary:
+            '상황을 다양한 관점에서 균형 있게 바라본다.',
+          body: '',
+          insight:
+            '당신은 전체 흐름을 이해하려는 사고를 가진다.',
+          reflectionQuestion:
+            '지금 내가 놓치고 있는 의미는 무엇일까?',
+          points: ['균형 시선', '의미 재정리', '전체 흐름'],
+        },
+      },
+      {
+        id: 'C',
+        label: '지금까지의 과정과 구조를 분석해 본다.',
+        patternCode: 'T4',
+        interpretation: {
+          title: '구조 정리형',
+          summary:
+            '과정과 구조를 분석하며 원인을 찾는다.',
+          body: '',
+          insight:
+            '당신은 체계적으로 문제를 이해하려는 사람이다.',
+          reflectionQuestion:
+            '이 과정에서 무엇이 가장 중요한 요소였을까?',
+          points: ['과정 분석', '구조 이해', '원인 탐색'],
+        },
+      },
+      {
+        id: 'D',
+        label: '내가 무엇을 놓쳤는지 계속 고민하게 된다.',
+        patternCode: 'T5',
+        interpretation: {
+          title: '반복 고민형',
+          summary:
+            '문제 원인을 계속 생각하며 고민한다.',
+          body: '',
+          insight:
+            '당신은 문제를 깊게 탐구하는 사고 패턴을 가지고 있다.',
+          reflectionQuestion:
+            '지금 이 고민은 해결로 가고 있을까?',
+          points: ['반복 고민', '원인 탐색', '해결 탐색'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_013',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '팀 프로젝트나 공동 작업에서 내가 맡은 역할을 잘 해냈을 때',
+    prompt: '그때 당신에게 가장 크게 느껴지는 감정은 무엇인가요?',
+    options: [
+      {
+        id: 'A',
+        label: '팀의 흐름이 잘 맞춰진 것 같아 뿌듯하다.',
+        patternCode: 'R7',
+        interpretation: {
+          title: '관망 관찰형',
+          summary:
+            '상황의 흐름을 관찰하며 전체가 잘 맞춰진 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계와 상황의 흐름을 읽는 능력이 강하다.',
+          reflectionQuestion:
+            '지금 느끼는 뿌듯함은 내 역할 때문인가요, 팀의 흐름 때문인가요?',
+          points: ['흐름 관찰', '상황 읽기', '팀 감각'],
+        },
+      },
+      {
+        id: 'B',
+        label: '내가 한 일이 어떤 기여를 했는지 정리된다.',
+        patternCode: 'R4',
+        interpretation: {
+          title: '사고 정리형',
+          summary:
+            '자신의 역할과 기여를 구조적으로 정리하며 이해한다.',
+          body: '',
+          insight:
+            '당신은 감정보다 구조로 상황을 이해하는 사람이다.',
+          reflectionQuestion:
+            '지금 내 기여를 정리할 때, 감정은 어떤 자리에 있었나요?',
+          points: ['기여 정리', '구조적 이해', '역할 인식'],
+        },
+      },
+      {
+        id: 'C',
+        label: '자신 있게 잘 해냈다고 느낀다.',
+        patternCode: 'R2',
+        interpretation: {
+          title: '직진 표현형',
+          summary:
+            '자신의 성과를 직접적으로 인정하고 표현한다.',
+          body: '',
+          insight:
+            '당신은 자신의 능력을 분명히 인식하는 사람이다.',
+          reflectionQuestion:
+            '지금 그 자신감은 나에게서 온 건가요, 상대의 반응에서 온 건가요?',
+          points: ['자신감', '직접 인정', '성과 인식'],
+        },
+      },
+      {
+        id: 'D',
+        label: '적당한 거리에서 기여한 것 같다.',
+        patternCode: 'R5',
+        interpretation: {
+          title: '거리 조절형',
+          summary:
+            '관계 속에서 적절한 거리를 유지하며 기여한 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 균형을 중요하게 생각하는 사람이다.',
+          reflectionQuestion:
+            '지금 유지한 거리가 나를 위한 건가요, 팀을 위한 건가요?',
+          points: ['거리 감각', '관계 균형', '기여 방식'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_014',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '상사나 동료가 "덕분에 일이 잘 됐다"고 말해 줄 때',
+    prompt: '그 말을 들었을 때 당신은 어떤 생각이 가장 먼저 떠오르나요?',
+    options: [
+      {
+        id: 'A',
+        label: '그 말의 진심이나 분위기를 살핀다.',
+        patternCode: 'R1',
+        interpretation: {
+          title: '신호 감지형',
+          summary:
+            '상대의 말과 태도 속 의미를 민감하게 읽는다.',
+          body: '',
+          insight:
+            '당신은 관계 속 미묘한 신호를 빠르게 감지하는 사람이다.',
+          reflectionQuestion:
+            '지금 느낀 진심은 사실일까요, 해석일까요?',
+          points: ['신호 감지', '분위기 읽기', '의미 파악'],
+        },
+      },
+      {
+        id: 'B',
+        label: '상황이 잘 풀린 것 같다.',
+        patternCode: 'R7',
+        interpretation: {
+          title: '관망 관찰형',
+          summary:
+            '상황의 흐름을 관찰하며 전체가 잘 맞춰진 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계와 상황의 흐름을 읽는 능력이 강하다.',
+          reflectionQuestion:
+            '지금 그 말이 주는 의미는 무엇인가요?',
+          points: ['흐름 관찰', '상황 읽기', '전체 맥락'],
+        },
+      },
+      {
+        id: 'C',
+        label: '내가 한 일이 어떤 역할을 했는지 정리된다.',
+        patternCode: 'R4',
+        interpretation: {
+          title: '사고 정리형',
+          summary:
+            '자신의 기여를 구조적으로 정리하며 이해한다.',
+          body: '',
+          insight:
+            '당신은 감정보다 구조로 상황을 이해하는 사람이다.',
+          reflectionQuestion:
+            '그 말을 들을 때, 가장 먼저 떠오른 것은 감정인가요 생각인가요?',
+          points: ['기여 정리', '역할 인식', '사고 정리'],
+        },
+      },
+      {
+        id: 'D',
+        label: '관계가 유지되는 것 같아 안심된다.',
+        patternCode: 'R8',
+        interpretation: {
+          title: '안정 유지형',
+          summary:
+            '관계의 안정성이 유지되는 것을 중요하게 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 안정이 깨지는 것을 특히 불편하게 느낀다.',
+          reflectionQuestion:
+            '지금 그 안심은 관계 때문인가요, 인정받았다는 느낌 때문인가요?',
+          points: ['관계 안정', '안심감', '유지 욕구'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_015',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '누군가 고민을 털어놓았고 내가 도움이 되는 조언을 해줬을 때',
+    prompt: '상대가 고마워할 때 당신은 어떤 감정을 느끼나요?',
+    options: [
+      {
+        id: 'A',
+        label: '즉각적으로 뿌듯함이 올라온다.',
+        patternCode: 'R3',
+        interpretation: {
+          title: '즉각 반응형',
+          summary:
+            '상대의 반응에 빠르게 감정적으로 반응한다.',
+          body: '',
+          insight:
+            '당신은 관계 변화에 즉각 반응하는 에너지가 있다.',
+          reflectionQuestion:
+            '지금 그 뿌듯함은 상대 때문인가요, 나의 기여 때문인가요?',
+          points: ['즉각 반응', '뿌듯함', '감정 상승'],
+        },
+      },
+      {
+        id: 'B',
+        label: '적당한 거리를 유지한 것 같다.',
+        patternCode: 'R5',
+        interpretation: {
+          title: '거리 조절형',
+          summary:
+            '관계 속에서 적절한 거리를 유지한 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 균형을 중요하게 생각하는 사람이다.',
+          reflectionQuestion:
+            '지금 그 거리가 상대를 위한 건가요, 나를 지키기 위한 건가요?',
+          points: ['거리 유지', '관계 균형', '적절한 도움'],
+        },
+      },
+      {
+        id: 'C',
+        label: '관계가 안정적으로 유지되는 것 같다.',
+        patternCode: 'R8',
+        interpretation: {
+          title: '안정 유지형',
+          summary:
+            '관계의 안정성이 유지되는 것을 중요하게 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 안정을 중요하게 생각한다.',
+          reflectionQuestion:
+            '지금 느끼는 안정은 관계 때문인가요, 도움이 됐다는 확인 때문인가요?',
+          points: ['관계 안정', '안심감', '균형 유지'],
+        },
+      },
+      {
+        id: 'D',
+        label: '상대의 감정 변화를 민감하게 느낀다.',
+        patternCode: 'R1',
+        interpretation: {
+          title: '신호 감지형',
+          summary:
+            '상대의 감정과 반응을 민감하게 읽는다.',
+          body: '',
+          insight:
+            '당신은 관계 속 미묘한 신호를 빠르게 감지하는 사람이다.',
+          reflectionQuestion:
+            '지금 상대의 고마움을 어떻게 읽었나요?',
+          points: ['신호 감지', '감정 읽기', '상대 반응'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_016',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '대화나 갈등 상황에서 내가 분위기를 잘 풀어냈을 때',
+    prompt: '그 순간 당신은 스스로를 어떻게 느끼나요?',
+    options: [
+      {
+        id: 'A',
+        label: '자신 있게 잘 풀어냈다고 느낀다.',
+        patternCode: 'R2',
+        interpretation: {
+          title: '직진 표현형',
+          summary:
+            '자신의 능력을 직접적으로 인정하고 표현한다.',
+          body: '',
+          insight:
+            '당신은 자신의 표현력을 분명히 인식하는 사람이다.',
+          reflectionQuestion:
+            '지금 그 자신감은 상황을 풀어낸 것 때문인가요, 관계가 유지된 것 때문인가요?',
+          points: ['자신감', '표현력', '직접 인정'],
+        },
+      },
+      {
+        id: 'B',
+        label: '상황이 어떻게 풀렸는지 정리된다.',
+        patternCode: 'R4',
+        interpretation: {
+          title: '사고 정리형',
+          summary:
+            '상황의 구조를 정리하며 이해한다.',
+          body: '',
+          insight:
+            '당신은 감정보다 구조로 상황을 이해하는 사람이다.',
+          reflectionQuestion:
+            '정리하는 동안, 그 순간의 감정은 어떤 자리에 있었나요?',
+          points: ['상황 정리', '구조적 이해', '과정 분석'],
+        },
+      },
+      {
+        id: 'C',
+        label: '관계에 깊이 관여한 것 같다.',
+        patternCode: 'R6',
+        interpretation: {
+          title: '과몰입형',
+          summary:
+            '관계 상황에 감정적으로 깊이 관여한 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계를 매우 중요하게 여긴다.',
+          reflectionQuestion:
+            '지금 그 관여는 관계를 위한 건가요, 나의 역할을 확인하기 위한 건가요?',
+          points: ['관계 몰입', '깊은 관여', '역할 확인'],
+        },
+      },
+      {
+        id: 'D',
+        label: '상황의 흐름이 잘 맞춰진 것 같다.',
+        patternCode: 'R7',
+        interpretation: {
+          title: '관망 관찰형',
+          summary:
+            '상황의 흐름을 관찰하며 전체가 잘 맞춰진 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계와 상황의 흐름을 읽는 능력이 강하다.',
+          reflectionQuestion:
+            '지금 느끼는 만족은 내 역할 때문인가요, 흐름 때문인가요?',
+          points: ['흐름 관찰', '상황 읽기', '맥락 파악'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_017',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '누군가 나에게 도움을 요청했고 내가 문제를 해결해 주었을 때',
+    prompt: '그 경험이 당신에게 어떤 의미로 느껴지나요?',
+    options: [
+      {
+        id: 'A',
+        label: '적당한 거리에서 도움을 준 것 같다.',
+        patternCode: 'R5',
+        interpretation: {
+          title: '거리 조절형',
+          summary:
+            '관계 속에서 적절한 거리를 유지하며 도움을 준 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 균형을 중요하게 생각하는 사람이다.',
+          reflectionQuestion:
+            '지금 그 거리가 상대를 위한 건가요, 나를 지키기 위한 건가요?',
+          points: ['거리 유지', '관계 균형', '도움 방식'],
+        },
+      },
+      {
+        id: 'B',
+        label: '즉각적으로 뿌듯함이 올라온다.',
+        patternCode: 'R3',
+        interpretation: {
+          title: '즉각 반응형',
+          summary:
+            '상대의 반응에 빠르게 감정적으로 반응한다.',
+          body: '',
+          insight:
+            '당신은 관계 변화에 즉각 반응하는 에너지가 있다.',
+          reflectionQuestion:
+            '지금 그 뿌듯함은 문제 해결 때문인가요, 상대의 반응 때문인가요?',
+          points: ['즉각 반응', '뿌듯함', '성취감'],
+        },
+      },
+      {
+        id: 'C',
+        label: '상대의 필요를 잘 읽은 것 같다.',
+        patternCode: 'R1',
+        interpretation: {
+          title: '신호 감지형',
+          summary:
+            '상대의 필요와 신호를 민감하게 읽은 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 속 미묘한 신호를 빠르게 감지하는 사람이다.',
+          reflectionQuestion:
+            '지금 읽은 필요는 상대가 보낸 걸까요, 내가 추측한 걸까요?',
+          points: ['신호 감지', '필요 읽기', '공감 능력'],
+        },
+      },
+      {
+        id: 'D',
+        label: '관계가 안정적으로 유지된 것 같다.',
+        patternCode: 'R8',
+        interpretation: {
+          title: '안정 유지형',
+          summary:
+            '관계의 안정성이 유지되는 것을 중요하게 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계 안정을 중요하게 생각한다.',
+          reflectionQuestion:
+            '지금 그 안정은 도움이 됐기 때문인가요, 관계가 유지됐기 때문인가요?',
+          points: ['관계 안정', '안심감', '유지 욕구'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_018',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '내가 한 행동이나 말이 다른 사람에게 긍정적인 영향을 주었을 때',
+    prompt: '그 사실을 알게 되었을 때 어떤 생각이 드나요?',
+    options: [
+      {
+        id: 'A',
+        label: '내 행동이 어떤 영향을 줬는지 정리된다.',
+        patternCode: 'R4',
+        interpretation: {
+          title: '사고 정리형',
+          summary:
+            '자신의 행동과 그 영향을 구조적으로 정리하며 이해한다.',
+          body: '',
+          insight:
+            '당신은 감정보다 구조로 상황을 이해하는 사람이다.',
+          reflectionQuestion:
+            '정리할 때, 가장 중요하게 느낀 부분은 무엇인가요?',
+          points: ['영향 정리', '구조적 이해', '인과 파악'],
+        },
+      },
+      {
+        id: 'B',
+        label: '자신 있게 잘한 것 같다.',
+        patternCode: 'R2',
+        interpretation: {
+          title: '직진 표현형',
+          summary:
+            '자신의 행동을 직접적으로 인정하고 표현한다.',
+          body: '',
+          insight:
+            '당신은 자신의 영향력을 분명히 인식하는 사람이다.',
+          reflectionQuestion:
+            '지금 그 자신감은 영향 때문인가요, 인정받았다는 느낌 때문인가요?',
+          points: ['자신감', '직접 인정', '영향력 인식'],
+        },
+      },
+      {
+        id: 'C',
+        label: '상황이 잘 풀린 것 같다.',
+        patternCode: 'R7',
+        interpretation: {
+          title: '관망 관찰형',
+          summary:
+            '상황의 흐름을 관찰하며 전체가 잘 맞춰진 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계와 상황의 흐름을 읽는 능력이 강하다.',
+          reflectionQuestion:
+            '지금 그 만족은 내 행동 때문인가요, 전체 흐름 때문인가요?',
+          points: ['흐름 관찰', '상황 읽기', '전체 맥락'],
+        },
+      },
+      {
+        id: 'D',
+        label: '관계에 깊이 기여한 것 같다.',
+        patternCode: 'R6',
+        interpretation: {
+          title: '과몰입형',
+          summary:
+            '관계에 감정적으로 깊이 기여한 것을 느낀다.',
+          body: '',
+          insight:
+            '당신은 관계를 매우 중요하게 여긴다.',
+          reflectionQuestion:
+            '지금 그 기여감은 상대를 위한 건가요, 나의 역할을 확인하기 위한 건가요?',
+          points: ['관계 몰입', '깊은 기여', '역할 확인'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'self_019',
+    category: 'self',
+    version: 1,
+    status: 'active',
+    scenario: '모임에서 혼자만 대화에 끼지 못하고 소외감을 느낄 때',
+    prompt: '이 상황에서 당신의 생각 흐름은 어느 쪽에 가까운가요?',
+    options: [
+      {
+        id: 'A',
+        label: '내가 왜 이런 자리에 잘 어울리지 못하는지 스스로 이유를 찾기 시작한다.',
+        patternCode: 'T1',
+        interpretation: {
+          title: '생각확장형',
+          summary:
+            '상황을 자기 사고 확장의 계기로 바꾸는 경향이 있다.',
+          body: '',
+          insight:
+            '이 유형은 외부 상황을 자기 이해의 소재로 활용한다.',
+          reflectionQuestion:
+            '지금 이 경험이 나에게 알려주는 것은 무엇일까요?',
+          points: ['사고 확장', '자기 이해', '상황 반복'],
+        },
+      },
+      {
+        id: 'B',
+        label: '지금 상황을 정리하며 내가 어떻게 행동하면 좋을지 판단하려 한다.',
+        patternCode: 'T4',
+        interpretation: {
+          title: '구조정리형',
+          summary:
+            '감정보다 상황 구조를 파악하고 해결 전략을 찾는다.',
+          body: '',
+          insight:
+            '관계 상황을 문제 해결 과제로 보는 경향이 있다.',
+          reflectionQuestion:
+            '지금 상황에서 내가 선택할 수 있는 행동은 무엇인가요?',
+          points: ['구조 파악', '해결 전략', '행동 선택'],
+        },
+      },
+      {
+        id: 'C',
+        label: '사람들의 분위기와 감정 흐름을 읽으며 내가 들어갈 타이밍을 살핀다.',
+        patternCode: 'T8',
+        interpretation: {
+          title: '균형 관점형',
+          summary:
+            '감정과 분위기를 동시에 보며 균형을 찾으려 한다.',
+          body: '',
+          insight:
+            '이 유형은 집단 흐름을 읽는 능력이 강하다.',
+          reflectionQuestion:
+            '지금 이 자리의 분위기는 어떤 흐름으로 움직이고 있을까요?',
+          points: ['분위기 읽기', '흐름 감지', '타이밍'],
+        },
+      },
+      {
+        id: 'D',
+        label: '내가 왜 이런 감정을 느끼는지 계속 곱씹으며 생각이 반복된다.',
+        patternCode: 'T5',
+        interpretation: {
+          title: '반복고민형',
+          summary:
+            '감정과 생각이 반복되며 자기평가로 이어진다.',
+          body: '',
+          insight:
+            '이 유형은 상황보다 자기 내부 평가에 집중하기 쉽다.',
+          reflectionQuestion:
+            '지금 내가 반복해서 떠올리는 생각은 사실인가 해석인가요?',
+          points: ['반복 사고', '자기평가', '내부 집중'],
         },
       },
     ],

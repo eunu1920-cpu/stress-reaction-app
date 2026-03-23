@@ -81,23 +81,41 @@ export async function saveAnalysis(
 ): Promise<StoredAnalysis | null> {
   if (!userId) return null
 
+  const payload = {
+    user_id: userId,
+    record_count: data.recordCount,
+    analysis: data.analysis,
+    period_start: data.periodStart,
+    period_end: data.periodEnd,
+  }
+
   const { data: row, error } = await supabase
     .from('analysis_results')
-    .upsert(
-      {
-        user_id: userId,
-        record_count: data.recordCount,
-        analysis: data.analysis,
-        period_start: data.periodStart,
-        period_end: data.periodEnd,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    )
+    .insert(payload)
     .select('id, record_count, analysis, period_start, period_end, created_at')
     .single()
 
   if (error) {
+    if (error.code === '23505' && error.message?.includes('analysis_results_user_id_key')) {
+      const { data: upsertRow, error: upsertError } = await supabase
+        .from('analysis_results')
+        .upsert({ ...payload, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        .select('id, record_count, analysis, period_start, period_end, created_at')
+        .single()
+
+      if (upsertError) {
+        console.error('[saveAnalysis] Supabase upsert error:', upsertError.message)
+        return null
+      }
+      return {
+        id: upsertRow.id,
+        recordCount: upsertRow.record_count,
+        analysis: upsertRow.analysis,
+        periodStart: upsertRow.period_start,
+        periodEnd: upsertRow.period_end,
+        createdAt: upsertRow.created_at,
+      }
+    }
     console.error('[saveAnalysis] Supabase error:', error.message)
     return null
   }

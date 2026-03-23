@@ -12,10 +12,9 @@ import {
 } from '@/lib/pattern-lens/registry'
 import {
   fetchQuestionResponse,
-  fetchTodayPatternCategoryChoice,
-  getOrCreateTodayAssignment,
-  markAssignmentOpened,
+  getRandomPatternQuestion,
   savePatternLensResponse,
+  savePatternLensResponseStandalone,
 } from '@/lib/pattern-lens/storage'
 import type { PatternLensResponseSnapshot } from '@/lib/pattern-lens/storage'
 import type { PatternLensCategory, PatternLensOption, PatternLensQuestion } from '@/lib/pattern-lens/types'
@@ -105,7 +104,6 @@ type LoadedState =
   | { status: 'loading' }
   | { status: 'empty' }
   | { status: 'invalidPreview'; questionId: string }
-  | { status: 'blocked'; selectedCategory: PatternLensCategory | null }
   | { status: 'trialComplete' }
   | {
       status: 'ready'
@@ -113,6 +111,7 @@ type LoadedState =
       question: PatternLensQuestion
       existingResponse: PatternResponseLike | null
       isTrial?: boolean
+      isRandomMode?: boolean
     }
 
 type PatternResponseLike = {
@@ -280,7 +279,10 @@ export default function PatternCategoryPage() {
     if (!user?.id || isDemoMode) {
       const anonymousId = getOrCreateAnonymousId()
       const answered = getTrialAnswered(anonymousId)[category] ?? []
-      const nextQuestion = activeQuestions.find((q) => !answered.includes(q.id))
+      const unanswered = activeQuestions.filter((q) => !answered.includes(q.id))
+      const nextQuestion = unanswered.length > 0
+        ? unanswered[Math.floor(Math.random() * unanswered.length)]
+        : undefined
       if (!nextQuestion) {
         setState({ status: 'trialComplete' })
         return
@@ -296,38 +298,19 @@ export default function PatternCategoryPage() {
     }
 
     let cancelled = false
-    const resolvedCategory = category
-
     const load = async () => {
-      const selectedCategory = await fetchTodayPatternCategoryChoice(user.id)
+      const question = await getRandomPatternQuestion(user.id, category)
       if (cancelled) return
-
-      if (selectedCategory && selectedCategory !== resolvedCategory) {
-        setState({ status: 'blocked', selectedCategory })
-        return
-      }
-
-      const assigned = await getOrCreateTodayAssignment(user.id, resolvedCategory)
-      if (cancelled) return
-
-      if (!assigned) {
+      if (!question) {
         setState({ status: 'empty' })
         return
       }
-
-      void markAssignmentOpened(assigned.assignment.id)
-
-      const response = assigned.assignment.response_id
-        ? await fetchQuestionResponse(assigned.assignment.response_id)
-        : null
-
-      if (cancelled) return
-
       setState({
         status: 'ready',
-        assignmentId: assigned.assignment.id,
-        question: assigned.question,
-        existingResponse: response,
+        assignmentId: 'random',
+        question,
+        existingResponse: null,
+        isRandomMode: true,
       })
     }
 
@@ -353,13 +336,20 @@ export default function PatternCategoryPage() {
     setSaving(true)
     setSelectedOptionId(option.id)
 
-    const result = await savePatternLensResponse({
-      userId: user.id,
-      category: state.question.category,
-      question: state.question,
-      option,
-      assignmentId: state.assignmentId,
-    })
+    const result = state.isRandomMode
+      ? await savePatternLensResponseStandalone({
+          userId: user.id,
+          category: state.question.category,
+          question: state.question,
+          option,
+        })
+      : await savePatternLensResponse({
+          userId: user.id,
+          category: state.question.category,
+          question: state.question,
+          option,
+          assignmentId: state.assignmentId,
+        })
 
     const response = result.responseId ? await fetchQuestionResponse(result.responseId) : null
 
@@ -368,6 +358,7 @@ export default function PatternCategoryPage() {
       assignmentId: state.assignmentId,
       question: state.question,
       existingResponse: response,
+      isRandomMode: state.isRandomMode,
     })
     setSaving(false)
   }
@@ -377,6 +368,8 @@ export default function PatternCategoryPage() {
     [category]
   )
   const resultSoundPlayedRef = useRef(false)
+  const [sessionResultCount, setSessionResultCount] = useState(0)
+  const prevHadResponseRef = useRef(false)
 
   const handleTrialNext = useCallback(() => {
     if (state.status !== 'ready' || !state.isTrial || !state.question || !category) return
@@ -422,7 +415,10 @@ export default function PatternCategoryPage() {
     const anonymousId = getOrCreateAnonymousId()
     addTrialAnswered(anonymousId, category, state.question.id)
     const answered = getTrialAnswered(anonymousId)[category] ?? []
-    const nextQuestion = trialQuestions.find((q) => !answered.includes(q.id))
+    const unanswered = trialQuestions.filter((q) => !answered.includes(q.id))
+    const nextQuestion = unanswered.length > 0
+      ? unanswered[Math.floor(Math.random() * unanswered.length)]
+      : undefined
     setSelectedOptionId(null)
     setPreviewResponse(null)
     resultSoundPlayedRef.current = false
@@ -439,12 +435,40 @@ export default function PatternCategoryPage() {
     })
   }, [state.status, state.isTrial, 'question' in state ? state.question : undefined, category, trialQuestions, selectedOptionId])
 
+  const handleRandomNext = useCallback(async () => {
+    if (state.status !== 'ready' || !state.isRandomMode || !user?.id || !category) return
+    setState({ status: 'loading' })
+    setSelectedOptionId(null)
+    setPreviewResponse(null)
+    resultSoundPlayedRef.current = false
+    const question = await getRandomPatternQuestion(user.id, category)
+    if (!question) {
+      setState({ status: 'empty' })
+      return
+    }
+    setState({
+      status: 'ready',
+      assignmentId: 'random',
+      question,
+      existingResponse: null,
+      isRandomMode: true,
+    })
+  }, [state.status, state.isRandomMode, user?.id, category])
+
   useEffect(() => {
-    if (state.isTrial && activeResponse && !isPreviewMode && !resultSoundPlayedRef.current) {
+    if ((state.isTrial || state.isRandomMode) && activeResponse && !isPreviewMode && !resultSoundPlayedRef.current) {
       resultSoundPlayedRef.current = true
       playSound('SOUND_04')
     }
-  }, [state.isTrial, activeResponse, isPreviewMode])
+  }, [state.isTrial, state.isRandomMode, activeResponse, isPreviewMode])
+
+  useEffect(() => {
+    const hasResponse = !!activeResponse && state.status === 'ready'
+    if (hasResponse && !prevHadResponseRef.current) {
+      setSessionResultCount((c) => c + 1)
+    }
+    prevHadResponseRef.current = hasResponse
+  }, [activeResponse, state.status])
 
   const handleDownloadResult = async () => {
     if (!resultCardRef.current || sharing || state.status !== 'ready' || !activeResponse) {
@@ -655,30 +679,6 @@ export default function PatternCategoryPage() {
             </div>
           )}
 
-          {state.status === 'blocked' && (
-            <div className="rounded-2xl border border-[#E8E2FF] bg-white p-6 text-center shadow-sm">
-              <p className="text-sm leading-relaxed text-[#555555]">
-                오늘은 이미 다른 카테고리를 선택했습니다.
-              </p>
-              <div className="mt-4 flex flex-col gap-3">
-                <Link
-                  href="/pattern"
-                  className="inline-flex items-center justify-center rounded-2xl border border-[#DDD4FF] bg-white px-5 py-3 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
-                >
-                  패턴 돋보기로 돌아가기
-                </Link>
-                {state.selectedCategory && (
-                  <Link
-                    href={`/pattern/${state.selectedCategory}`}
-                    className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
-                  >
-                    오늘 선택한 카테고리 보기
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-
           {state.status === 'ready' && state.question && (
             <>
               <section className="rounded-2xl border border-[#DDD4FF] bg-[#F8F5FF] p-6 shadow-sm">
@@ -802,6 +802,12 @@ export default function PatternCategoryPage() {
                   )}
                 </section>
               )}
+
+              {activeResponse && sessionResultCount >= 2 && sessionResultCount % 2 === 0 && (
+                <p className="text-center text-sm text-[#666666]">
+                  관찰을 멈추고 내 지금 생각을 남길 수도 있어요.
+                </p>
+              )}
             </>
           )}
 
@@ -827,16 +833,25 @@ export default function PatternCategoryPage() {
 
           {showResultFooter && user && (
             <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-              <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
+              <div className="mx-auto flex max-w-md items-center justify-between gap-4 px-4 py-3">
                 <Link
                   href="/observe"
-                  className="rounded-xl p-2.5 text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
+                  className="shrink-0 rounded-xl p-2.5 text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
                   title="관찰로 돌아가기"
                   aria-label="관찰로 돌아가기"
                 >
                   <RotateCcw className="h-5 w-5" />
                 </Link>
-                <div className="flex flex-1 items-center justify-end gap-3">
+                <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                  {state.isRandomMode && (
+                    <button
+                      type="button"
+                      onClick={handleRandomNext}
+                      className="shrink-0 rounded-xl border border-[#8E7CFF] px-4 py-2.5 text-sm font-semibold text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
+                    >
+                      다음 질문 →
+                    </button>
+                  )}
                   <Link
                     href="/record"
                     className="shrink-0 rounded-xl bg-[#8E7CFF] px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"

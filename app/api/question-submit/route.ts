@@ -48,11 +48,15 @@ export async function POST(request: Request) {
         })
         sheetsOk = true
       } catch (e) {
-        console.error('[question-submit] Sheets:', e)
+        const err = e instanceof Error ? e : new Error(String(e))
+        console.error('[question-submit] Sheets:', err.message, err)
       }
+    } else {
+      console.warn('[question-submit] Sheets 미설정: GOOGLE_SHEETS_CREDENTIALS, GOOGLE_SHEETS_ID 필요')
     }
 
     let supabaseOk = false
+    let supabaseErr: unknown = null
     if (serviceRoleKey) {
       const admin = createClient(url, serviceRoleKey)
       const { error } = await admin.from('user_question_submissions').insert({
@@ -61,7 +65,8 @@ export async function POST(request: Request) {
         status: 'pending',
       })
       supabaseOk = !error
-      if (error) console.error('[question-submit] Supabase:', error)
+      supabaseErr = error
+      if (error) console.error('[question-submit] Supabase(service):', error?.message ?? error?.code ?? error)
     } else {
       const clientWithAuth = createClient(url, anonKey, {
         global: { headers: { Authorization: `Bearer ${token}` } },
@@ -72,15 +77,21 @@ export async function POST(request: Request) {
         status: 'pending',
       })
       supabaseOk = !error
-      if (error) console.error('[question-submit] Supabase:', error)
+      supabaseErr = error
+      if (error) console.error('[question-submit] Supabase(anon):', error?.message ?? error?.code ?? error)
     }
 
     if (sheetsOk || supabaseOk) {
       return NextResponse.json({ ok: true })
     }
 
+    const errParts: string[] = []
+    if (!sheetsCreds || !sheetsId) errParts.push('Google 시트 환경변수 미설정')
+    else errParts.push('Google 시트(편집자 공유 확인)')
+    if (supabaseErr) errParts.push(`Supabase: ${(supabaseErr as { message?: string })?.message ?? '마이그레이션 011 확인'}`)
+    else errParts.push('Supabase 마이그레이션 011 확인')
     return NextResponse.json(
-      { error: '제출에 실패했습니다. 시트 공유(편집자)와 Supabase 마이그레이션을 확인해주세요.' },
+      { error: `제출에 실패했습니다. ${errParts.join('. ')}` },
       { status: 500 }
     )
   } catch (e) {

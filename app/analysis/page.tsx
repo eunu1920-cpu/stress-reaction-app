@@ -63,12 +63,18 @@ function recordsToApiFormat(records: ObservationRecord[]) {
       situationTags: situationArr ?? [CATEGORY_LABELS[getCategory(r.resultType)] ?? ''],
       bodyReactionTags: bodyArr ?? [],
       behaviorTags: behaviorArr ?? [],
-      content: (r.memo ?? r.summary ?? '').trim(),
+      content:
+        r.sourceKind === 'manual_record'
+          ? (r.memo ?? r.summary ?? '').trim()
+          : '',
+      sourceKind: r.sourceKind ?? (r.pattern === 'manual_record' ? 'manual_record' : r.pattern === 'stress_test' ? 'stress_test' : 'pattern_lens'),
     }
   })
 }
 
 const SUBJECTS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'] as const
+const RELATION_SUBJECTS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8'] as const
+const INNER_SUBJECTS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'] as const
 
 const SUBJECT_LABELS: Record<string, string> = {
   S1: '폭주센서',
@@ -81,50 +87,56 @@ const SUBJECT_LABELS: Record<string, string> = {
   S8: '몰입소진',
 }
 
-function buildChartDataFromRecords(records: ObservationRecord[]): { subject: string; value: number }[] {
+const RELATION_LABELS: Record<string, string> = {
+  R1: '신호 감지형',
+  R2: '직진 표현형',
+  R3: '즉각 반응형',
+  R4: '사고 정리형',
+  R5: '거리 조절형',
+  R6: '과몰입형',
+  R7: '관망 관찰형',
+  R8: '안정 유지형',
+}
+
+const INNER_LABELS: Record<string, string> = {
+  T1: '생각 확장형',
+  T2: '의미 탐색형',
+  T3: '감정 연결형',
+  T4: '구조 정리형',
+  T5: '반복 고민형',
+  T6: '거리 두기형',
+  T7: '직관 포착형',
+  T8: '균형 관점형',
+}
+
+function getRecordPatternCode(record: ObservationRecord): string {
+  const type = (record.resultType || record.patternCode || record.pattern || '').toUpperCase()
+  return type
+}
+
+function buildChartDataFromRecords(
+  records: ObservationRecord[],
+  subjects: readonly string[]
+): { subject: string; value: number }[] {
   const counts: Record<string, number> = {}
-  SUBJECTS.forEach((s) => {
+  subjects.forEach((s) => {
     counts[s] = 0
   })
   records.forEach((record) => {
-    const type = (record.resultType || '').toUpperCase()
-    if (SUBJECTS.includes(type as (typeof SUBJECTS)[number])) {
+    const type = getRecordPatternCode(record)
+    if (subjects.includes(type)) {
       counts[type] = (counts[type] ?? 0) + 1
     }
   })
-  return SUBJECTS.map((subject) => ({
+  return subjects.map((subject) => ({
     subject,
     value: counts[subject] ?? 0,
   }))
 }
 
 const initialChartData = SUBJECTS.map((subject) => ({ subject, value: 0 }))
-
-// 관계 반응 (R1~R8) 예시 그래프용 고정 데이터
-const relationPlaceholderData: { subject: string; value: number }[] = [
-  { subject: 'R1', value: 2 },
-  { subject: 'R2', value: 3 },
-  { subject: 'R3', value: 1 },
-  { subject: 'R4', value: 2 },
-  { subject: 'R5', value: 1 },
-  { subject: 'R6', value: 3 },
-  { subject: 'R7', value: 2 },
-  { subject: 'R8', value: 1 },
-]
-
-// 내면 흐름 (T1~T8) 예시 그래프용 고정 데이터
-const innerPlaceholderData: { subject: string; value: number }[] = [
-  { subject: 'T1', value: 1 },
-  { subject: 'T2', value: 2 },
-  { subject: 'T3', value: 3 },
-  { subject: 'T4', value: 2 },
-  { subject: 'T5', value: 1 },
-  { subject: 'T6', value: 2 },
-  { subject: 'T7', value: 3 },
-  { subject: 'T8', value: 1 },
-]
-
-const PLACEHOLDER_DOMAIN_MAX = 4
+const initialRelationData = RELATION_SUBJECTS.map((subject) => ({ subject, value: 0 }))
+const initialInnerData = INNER_SUBJECTS.map((subject) => ({ subject, value: 0 }))
 
 function formatDateShort(iso: string): string {
   const d = new Date(iso)
@@ -147,6 +159,8 @@ function formatDateTimeShort(iso: string) {
 export default function AnalysisPage() {
   const { user, login } = useAuth()
   const [data, setData] = useState<{ subject: string; value: number }[]>(initialChartData)
+  const [relationData, setRelationData] = useState<{ subject: string; value: number }[]>(initialRelationData)
+  const [innerData, setInnerData] = useState<{ subject: string; value: number }[]>(initialInnerData)
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [records, setRecords] = useState<ObservationRecord[]>([])
   const [analysisHistory, setAnalysisHistory] = useState<StoredAnalysis[]>([])
@@ -159,7 +173,9 @@ export default function AnalysisPage() {
     loadRecords(user?.id ?? null).then((hist) => {
       if (!cancelled) {
         setRecords(hist)
-        setData(buildChartDataFromRecords(hist))
+        setData(buildChartDataFromRecords(hist, SUBJECTS))
+        setRelationData(buildChartDataFromRecords(hist, RELATION_SUBJECTS))
+        setInnerData(buildChartDataFromRecords(hist, INNER_SUBJECTS))
       }
     })
     return () => { cancelled = true }
@@ -282,8 +298,18 @@ export default function AnalysisPage() {
     const max = Math.max(1, ...data.map((d) => d.value))
     return max
   }, [data])
+  const relationDomainMax = useMemo(
+    () => Math.max(1, ...relationData.map((d) => d.value)),
+    [relationData]
+  )
+  const innerDomainMax = useMemo(
+    () => Math.max(1, ...innerData.map((d) => d.value)),
+    [innerData]
+  )
 
   const hasData = data.some((d) => d.value > 0)
+  const hasRelationData = relationData.some((d) => d.value > 0)
+  const hasInnerData = innerData.some((d) => d.value > 0)
   const { hasEnoughForFirst, recordsNeeded } = getAnalysisProgress(
     records.length,
     latestAnalysis?.recordCount ?? null
@@ -489,15 +515,16 @@ export default function AnalysisPage() {
                     <div className="rounded-xl bg-[#F5F3FA] p-6 min-w-0">
                       <div className="w-full overflow-hidden flex items-center justify-center h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={relationPlaceholderData}>
+                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={relationData}>
                             <PolarGrid stroke="#E8E2FF" />
                             <PolarAngleAxis
                               dataKey="subject"
+                              tickFormatter={(value: string) => RELATION_LABELS[value] ?? value}
                               tick={{ fill: '#333333', fontSize: 10 }}
                             />
                             <PolarRadiusAxis
                               angle={90}
-                              domain={[0, PLACEHOLDER_DOMAIN_MAX]}
+                              domain={[0, relationDomainMax]}
                               tick={{ fill: '#666666', fontSize: 10 }}
                             />
                             <Radar
@@ -513,7 +540,9 @@ export default function AnalysisPage() {
                       </div>
                     </div>
                     <p className="text-center text-xs text-[#666666]">
-                      예시 그래프입니다. 기록이 쌓이면 나의 패턴이 보입니다.
+                      {hasRelationData
+                        ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
+                        : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
                     </p>
                   </section>
 
@@ -523,15 +552,16 @@ export default function AnalysisPage() {
                     <div className="rounded-xl bg-[#F5F3FA] p-6 min-w-0">
                       <div className="w-full overflow-hidden flex items-center justify-center h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={innerPlaceholderData}>
+                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={innerData}>
                             <PolarGrid stroke="#E8E2FF" />
                             <PolarAngleAxis
                               dataKey="subject"
+                              tickFormatter={(value: string) => INNER_LABELS[value] ?? value}
                               tick={{ fill: '#333333', fontSize: 10 }}
                             />
                             <PolarRadiusAxis
                               angle={90}
-                              domain={[0, PLACEHOLDER_DOMAIN_MAX]}
+                              domain={[0, innerDomainMax]}
                               tick={{ fill: '#666666', fontSize: 10 }}
                             />
                             <Radar
@@ -547,7 +577,9 @@ export default function AnalysisPage() {
                       </div>
                     </div>
                     <p className="text-center text-xs text-[#666666]">
-                      예시 그래프입니다. 기록이 쌓이면 나의 패턴이 보입니다.
+                      {hasInnerData
+                        ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
+                        : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
                     </p>
                   </section>
                 </div>

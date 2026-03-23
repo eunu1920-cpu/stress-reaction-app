@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
-import { fetchTodayPatternCategoryChoice } from '@/lib/pattern-lens/storage'
 import { supabase } from '@/lib/supabase'
 
 const PATTERN_CATEGORIES = [
@@ -31,29 +29,6 @@ function getOrCreateAnonymousId(): string | null {
 
 export default function PatternPage() {
   const { user } = useAuth()
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!user?.id) {
-      setSelectedCategory(null)
-      return
-    }
-
-    let cancelled = false
-
-    const load = async () => {
-      const category = await fetchTodayPatternCategoryChoice(user.id)
-      if (!cancelled) {
-        setSelectedCategory(category)
-      }
-    }
-
-    void load()
-
-    return () => {
-      cancelled = true
-    }
-  }, [user?.id])
 
   const handleCategoryClick = async (item: (typeof PATTERN_CATEGORIES)[number]) => {
     const anonymousId = user?.id ? null : getOrCreateAnonymousId()
@@ -86,7 +61,7 @@ export default function PatternPage() {
             </p>
             {user ? (
               <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
-                오늘은 세 가지 중 하나만 선택할 수 있어요. 가장 가까운 카테고리를 골라주세요.
+                카테고리를 선택하면 랜덤 질문이 나와요. 여러 번 질문할 수 있어요.
               </p>
             ) : (
               <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
@@ -102,42 +77,16 @@ export default function PatternPage() {
 
         <div className="w-full">
           <div className="flex flex-col gap-4">
-            {PATTERN_CATEGORIES.map((item) => {
-              const isSelected = selectedCategory === item.id
-              const isLocked = Boolean(selectedCategory) && !isSelected
-
-              if (isLocked) {
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    disabled
-                    className="w-full rounded-3xl border border-[#E5DEFF] bg-[#F7F5FD] px-6 py-5 text-center text-base font-semibold text-[#A79DCB] shadow-sm"
-                  >
-                    <span className="block">{item.label}</span>
-                    <span className="mt-1 block text-xs font-medium">내일 다시 열림</span>
-                  </button>
-                )
-              }
-
-              return (
-                <Link
-                  key={item.id}
-                  onClick={() => handleCategoryClick(item)}
-                  href={`/pattern/${item.id}`}
-                  className={`w-full rounded-3xl border px-6 py-5 text-center text-base font-semibold shadow-sm transition-colors ${
-                    isSelected
-                      ? 'border-[#CFC2FF] bg-[#F3EEFF] text-[#5a4bb5] hover:bg-[#EEE7FF]'
-                      : 'border-[#E8E2FF] bg-white text-[#333333] hover:border-[#D8CCFF] hover:bg-[#FAF8FF]'
-                  }`}
-                >
-                  <span className="block">{item.label}</span>
-                  {isSelected && (
-                    <span className="mt-1 block text-xs font-medium">오늘 선택한 카테고리</span>
-                  )}
-                </Link>
-              )
-            })}
+            {PATTERN_CATEGORIES.map((item) => (
+              <Link
+                key={item.id}
+                onClick={() => handleCategoryClick(item)}
+                href={`/pattern/${item.id}`}
+                className="w-full rounded-3xl border border-[#E8E2FF] bg-white px-6 py-5 text-center text-base font-semibold text-[#333333] shadow-sm transition-colors hover:border-[#D8CCFF] hover:bg-[#FAF8FF]"
+              >
+                <span className="block">{item.label}</span>
+              </Link>
+            ))}
           </div>
         </div>
 
