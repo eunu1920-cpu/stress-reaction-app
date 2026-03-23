@@ -48,8 +48,7 @@ export function AppNav() {
         >
           MyView
         </Link>
-        {displayUser &&
-          navItems.map(({ href, label, shortLabel }) => {
+        {navItems.map(({ href, label, shortLabel }) => {
             const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
             return (
               <Link

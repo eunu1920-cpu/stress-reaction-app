@@ -12,10 +12,12 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/result/stress')
   const showNav = !isLanding
 
+  const showBanner = showNav && pathname !== '/'
+
   return (
     <>
       {showNav && <AppNav />}
-      {showNav && <PatternProgressBanner />}
+      {showBanner && <PatternProgressBanner />}
       {children}
     </>
   )

@@ -54,6 +54,15 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <p className="text-center">
+          <Link
+            href="/fortune"
+            className="text-sm text-[#8E7CFF] hover:underline"
+          >
+            오늘의 운세 보기
+          </Link>
+        </p>
       </div>
     </main>
   )

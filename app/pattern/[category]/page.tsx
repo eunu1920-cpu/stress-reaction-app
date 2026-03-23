@@ -19,7 +19,7 @@ import {
 import type { PatternLensResponseSnapshot } from '@/lib/pattern-lens/storage'
 import type { PatternLensCategory, PatternLensOption, PatternLensQuestion } from '@/lib/pattern-lens/types'
 import { useAuth } from '@/lib/auth-context'
-import { saveData } from '@/lib/storage'
+import { saveData, loadRecords } from '@/lib/storage'
 import { toBlob } from 'html-to-image'
 import { toast } from 'sonner'
 import { TimedSelectionOptions } from '@/components/timed-selection-options'
@@ -217,6 +217,9 @@ export default function PatternCategoryPage() {
   const [saving, setSaving] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [previewResponse, setPreviewResponse] = useState<PatternResponseLike | null>(null)
+  const [patternComment, setPatternComment] = useState('')
+  const [commentSaving, setCommentSaving] = useState(false)
+  const [completedRecordsCount, setCompletedRecordsCount] = useState<number | null>(null)
   const resultCardRef = useRef<HTMLElement | null>(null)
 
   const category = useMemo(
@@ -376,6 +379,11 @@ export default function PatternCategoryPage() {
     const option = selectedOptionId
       ? state.question.options.find((o) => o.id === selectedOptionId)
       : null
+    const comment = patternComment.trim()
+    const baseContent = option?.interpretation.body ?? ''
+    const contentWithComment = comment
+      ? `${baseContent}\n\n댓글: ${comment}`
+      : baseContent
     if (option) {
       const snapshot = {
         scenario: state.question.scenario,
@@ -401,13 +409,13 @@ export default function PatternCategoryPage() {
           situationTags: [state.question.scenario],
           bodyReactionTags: [option.label],
           behaviorTags: [option.interpretation.title],
-          content: option.interpretation.body,
+          content: contentWithComment,
           q1: JSON.stringify([state.question.scenario]),
           q2: JSON.stringify([option.label]),
           q3: JSON.stringify([option.interpretation.title]),
           summary: option.interpretation.summary,
           resultType: option.patternCode,
-          memo: option.interpretation.body,
+          memo: contentWithComment,
         },
         null
       )
@@ -421,6 +429,7 @@ export default function PatternCategoryPage() {
       : undefined
     setSelectedOptionId(null)
     setPreviewResponse(null)
+    setPatternComment('')
     resultSoundPlayedRef.current = false
     if (!nextQuestion) {
       setState({ status: 'trialComplete' })
@@ -433,13 +442,29 @@ export default function PatternCategoryPage() {
       existingResponse: null,
       isTrial: true,
     })
-  }, [state.status, state.isTrial, 'question' in state ? state.question : undefined, category, trialQuestions, selectedOptionId])
+  }, [state.status, (state as { isTrial?: boolean }).isTrial, 'question' in state ? state.question : undefined, category, trialQuestions, selectedOptionId, patternComment])
 
   const handleRandomNext = useCallback(async () => {
     if (state.status !== 'ready' || !state.isRandomMode || !user?.id || !category) return
+    if (patternComment.trim() && activeResponse && state.question) {
+      const baseContent = activeResponse.display_snapshot?.interpretationBody?.trim() ?? ''
+      const newContent = baseContent
+        ? `${baseContent}\n\n댓글: ${patternComment.trim()}`
+        : `댓글: ${patternComment.trim()}`
+      const records = await loadRecords(user.id)
+      const match = records.find(
+        (r) =>
+          r.sourceKind === 'pattern_lens' && r.questionId === state.question?.id
+      )
+      if (match) {
+        const { updateRecordContent } = await import('@/lib/history-storage')
+        await updateRecordContent(match.id, newContent)
+      }
+    }
     setState({ status: 'loading' })
     setSelectedOptionId(null)
     setPreviewResponse(null)
+    setPatternComment('')
     resultSoundPlayedRef.current = false
     const question = await getRandomPatternQuestion(user.id, category)
     if (!question) {
@@ -453,14 +478,20 @@ export default function PatternCategoryPage() {
       existingResponse: null,
       isRandomMode: true,
     })
-  }, [state.status, state.isRandomMode, user?.id, category])
+  }, [state.status, (state as { isRandomMode?: boolean; question?: PatternLensQuestion }).isRandomMode, (state as { question?: PatternLensQuestion }).question, user?.id, category, patternComment, activeResponse])
 
   useEffect(() => {
-    if ((state.isTrial || state.isRandomMode) && activeResponse && !isPreviewMode && !resultSoundPlayedRef.current) {
+    if (
+      state.status === 'ready' &&
+      (state.isTrial || state.isRandomMode) &&
+      activeResponse &&
+      !isPreviewMode &&
+      !resultSoundPlayedRef.current
+    ) {
       resultSoundPlayedRef.current = true
       playSound('SOUND_04')
     }
-  }, [state.isTrial, state.isRandomMode, activeResponse, isPreviewMode])
+  }, [state.status, (state as { isTrial?: boolean; isRandomMode?: boolean }).isTrial, (state as { isRandomMode?: boolean }).isRandomMode, activeResponse, isPreviewMode])
 
   useEffect(() => {
     const hasResponse = !!activeResponse && state.status === 'ready'
@@ -469,6 +500,20 @@ export default function PatternCategoryPage() {
     }
     prevHadResponseRef.current = hasResponse
   }, [activeResponse, state.status])
+
+  useEffect(() => {
+    if (state.status !== 'empty' && state.status !== 'trialComplete' && !(state.status === 'ready' && activeResponse)) {
+      if (state.status !== 'ready') setCompletedRecordsCount(null)
+      return
+    }
+    let cancelled = false
+    loadRecords(user?.id ?? null).then((records) => {
+      if (!cancelled) setCompletedRecordsCount(records.length)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [state.status, user?.id, activeResponse])
 
   const handleDownloadResult = async () => {
     if (!resultCardRef.current || sharing || state.status !== 'ready' || !activeResponse) {
@@ -568,14 +613,14 @@ export default function PatternCategoryPage() {
   const showResultFooter = state.status === 'ready' && !!activeResponse
 
   return (
-      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter && user ? 'pb-24' : ''}`}>
+      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter ? 'pb-24' : ''}`}>
         <div className="mx-auto flex w-full max-w-md flex-col gap-6">
           <div className="text-center">
             <p className="text-sm font-medium text-[#8E7CFF]">{CATEGORY_LABELS[category]}</p>
             <h1 className="mt-2 text-2xl font-bold text-[#333333]">오늘의 관찰 질문</h1>
           </div>
 
-          {state.isTrial && state.status === 'ready' && state.question && category !== 'relation' && (
+          {state.status === 'ready' && state.isTrial && state.question && category !== 'relation' && (
             <section className="rounded-2xl border border-[#DDD4FF] bg-[#F8F5FF] p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
                 비회원 체험
@@ -654,6 +699,33 @@ export default function PatternCategoryPage() {
               <p className="text-sm leading-relaxed text-[#555555]">
                 준비된 질문에 모두 응답했습니다.
               </p>
+              {completedRecordsCount !== null && completedRecordsCount >= 5 && (
+                <p className="mt-3 text-sm font-medium text-[#8E7CFF]">
+                  5개가 모였어요. 종합분석에서 패턴을 확인해보세요
+                </p>
+              )}
+              <div className="mt-5 flex flex-col gap-3">
+                {completedRecordsCount !== null && completedRecordsCount >= 5 && (
+                  <Link
+                    href="/analysis"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                  >
+                    종합분석 보기
+                  </Link>
+                )}
+                <Link
+                  href="/history"
+                  className="inline-flex items-center justify-center rounded-2xl border border-[#DDD4FF] bg-white px-5 py-3 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
+                >
+                  내 히스토리 보기
+                </Link>
+                <Link
+                  href="/pattern"
+                  className="text-sm font-medium text-[#666666] transition-colors hover:text-[#5a4bb5]"
+                >
+                  ← 패턴 돋보기로 돌아가기
+                </Link>
+              </div>
             </div>
           )}
 
@@ -667,7 +739,20 @@ export default function PatternCategoryPage() {
                 <br />
                 다른 각도로 보여드릴 수 있어요.
               </p>
+              {completedRecordsCount !== null && completedRecordsCount >= 5 && (
+                <p className="mt-3 text-sm font-medium text-[#8E7CFF]">
+                  5개가 모였어요. 종합분석에서 패턴을 확인해보세요
+                </p>
+              )}
               <div className="mt-5 flex flex-col gap-3">
+                {completedRecordsCount !== null && completedRecordsCount >= 5 && (
+                  <Link
+                    href="/analysis"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                  >
+                    종합분석 보기
+                  </Link>
+                )}
                 <Link
                   href="/history"
                   className="inline-flex items-center justify-center rounded-2xl border border-[#DDD4FF] bg-white px-5 py-3 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
@@ -803,6 +888,76 @@ export default function PatternCategoryPage() {
                 </section>
               )}
 
+              {activeResponse && !isPreviewMode && (
+                <section className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
+                  <p className="text-xs font-medium text-[#666666]">이 질문에 댓글 한 줄</p>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={patternComment}
+                      onChange={(e) => setPatternComment(e.target.value)}
+                      placeholder="예: 나 요즘 확 그런 것 같아 (선택)"
+                      maxLength={100}
+                      className="flex-1 rounded-xl border border-[#E8E2FF] px-4 py-2.5 text-sm text-[#333333] placeholder:text-[#999999] focus:border-[#8E7CFF] focus:outline-none"
+                    />
+                    {user?.id ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const comment = patternComment.trim()
+                          if (!comment || commentSaving) return
+                          setCommentSaving(true)
+                          try {
+                            const baseContent =
+                              activeResponse?.display_snapshot?.interpretationBody?.trim() ?? ''
+                            const newContent = baseContent
+                              ? `${baseContent}\n\n댓글: ${comment}`
+                              : `댓글: ${comment}`
+                            const records = await loadRecords(user.id)
+                            const match = records.find(
+                              (r) =>
+                                r.sourceKind === 'pattern_lens' &&
+                                r.questionId === state.question?.id
+                            )
+                            if (match) {
+                              const { updateRecordContent } = await import(
+                                '@/lib/history-storage'
+                              )
+                              await updateRecordContent(match.id, newContent)
+                              setPatternComment('')
+                              toast.success('댓글이 등록되었어요.')
+                            }
+                          } finally {
+                            setCommentSaving(false)
+                          }
+                        }}
+                        disabled={!patternComment.trim() || commentSaving}
+                        className="shrink-0 rounded-xl bg-[#8E7CFF] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {commentSaving ? '등록 중...' : '등록'}
+                      </button>
+                    ) : (
+                      <p className="shrink-0 self-center text-xs text-[#999999]">
+                        다음 질문을 누르면 함께 저장돼요
+                      </p>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {activeResponse && completedRecordsCount !== null && completedRecordsCount >= 5 && (
+                <section className="rounded-2xl border border-[#E8E2FF] bg-[#F8F5FF] p-4 text-center">
+                  <p className="text-sm font-medium text-[#8E7CFF]">
+                    5개가 모였어요. 종합분석에서 패턴을 확인해보세요
+                  </p>
+                  <Link
+                    href="/analysis"
+                    className="mt-2 inline-block text-sm font-semibold text-[#5a4bb5] underline-offset-2 hover:underline"
+                  >
+                    종합분석 보기 →
+                  </Link>
+                </section>
+              )}
               {activeResponse && sessionResultCount >= 2 && sessionResultCount % 2 === 0 && (
                 <p className="text-center text-sm text-[#666666]">
                   관찰을 멈추고 내 지금 생각을 남길 수도 있어요.
@@ -812,7 +967,7 @@ export default function PatternCategoryPage() {
           )}
 
           <div className="pt-1 text-center">
-            {state.status === 'ready' && activeResponse && state.isTrial && (
+            {state.status === 'ready' && activeResponse && state.isTrial && !showResultFooter && (
               <button
                 type="button"
                 onClick={handleTrialNext}
@@ -821,7 +976,7 @@ export default function PatternCategoryPage() {
                 다음 질문 →
               </button>
             )}
-            {!showResultFooter && user && (
+            {!showResultFooter && (
               <Link
                 href="/pattern"
                 className="text-sm font-medium text-[#666666] transition-colors hover:text-[#5a4bb5]"
@@ -831,7 +986,7 @@ export default function PatternCategoryPage() {
             )}
           </div>
 
-          {showResultFooter && user && (
+          {showResultFooter && (
             <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
               <div className="mx-auto flex max-w-md items-center justify-between gap-4 px-4 py-3">
                 <Link
@@ -843,10 +998,10 @@ export default function PatternCategoryPage() {
                   <RotateCcw className="h-5 w-5" />
                 </Link>
                 <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                  {state.isRandomMode && (
+                  {(state.isRandomMode || state.isTrial) && (
                     <button
                       type="button"
-                      onClick={handleRandomNext}
+                      onClick={state.isTrial ? handleTrialNext : handleRandomNext}
                       className="shrink-0 rounded-xl border border-[#8E7CFF] px-4 py-2.5 text-sm font-semibold text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
                     >
                       다음 질문 →

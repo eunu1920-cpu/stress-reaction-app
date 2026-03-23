@@ -1,4 +1,4 @@
-export const ANALYSIS_BATCH_SIZE = 7
+export const ANALYSIS_BATCH_SIZE = 5
 
 export function getAnalysisProgress(recordsCount: number, recordsAtLastAnalysis: number | null) {
   const safeRecordsCount = Math.max(0, recordsCount)
