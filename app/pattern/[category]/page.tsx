@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { RotateCcw } from 'lucide-react'
+import { Download, RotateCcw } from 'lucide-react'
 import { LoginModal } from '@/components/login-modal'
 import {
   getPatternLensQuestionById,
@@ -218,6 +218,7 @@ export default function PatternCategoryPage() {
   const [sharing, setSharing] = useState(false)
   const [previewResponse, setPreviewResponse] = useState<PatternResponseLike | null>(null)
   const [patternComment, setPatternComment] = useState('')
+  const [selectedResonantTags, setSelectedResonantTags] = useState<string[]>([])
   const [commentSaving, setCommentSaving] = useState(false)
   const [completedRecordsCount, setCompletedRecordsCount] = useState<number | null>(null)
   const resultCardRef = useRef<HTMLElement | null>(null)
@@ -364,6 +365,11 @@ export default function PatternCategoryPage() {
       isRandomMode: state.isRandomMode,
     })
     setSaving(false)
+
+    loadRecords(user.id).then((records) => {
+      setCompletedRecordsCount(records.length)
+      window.dispatchEvent(new CustomEvent('records-updated'))
+    })
   }
 
   const trialQuestions = useMemo(
@@ -374,16 +380,19 @@ export default function PatternCategoryPage() {
   const [sessionResultCount, setSessionResultCount] = useState(0)
   const prevHadResponseRef = useRef(false)
 
-  const handleTrialNext = useCallback(() => {
+  const handleTrialNext = useCallback(async () => {
     if (state.status !== 'ready' || !state.isTrial || !state.question || !category) return
     const option = selectedOptionId
       ? state.question.options.find((o) => o.id === selectedOptionId)
       : null
     const comment = patternComment.trim()
     const baseContent = option?.interpretation.body ?? ''
-    const contentWithComment = comment
-      ? `${baseContent}\n\n댓글: ${comment}`
-      : baseContent
+    const parts: string[] = []
+    if (selectedResonantTags.length > 0)
+      parts.push(`공감: ${selectedResonantTags.join(', ')}`)
+    if (comment) parts.push(`댓글: ${comment}`)
+    const contentWithComment =
+      parts.length > 0 ? `${baseContent}\n\n${parts.join('\n\n')}` : baseContent
     if (option) {
       const snapshot = {
         scenario: state.question.scenario,
@@ -396,7 +405,7 @@ export default function PatternCategoryPage() {
         reflectionQuestion: option.interpretation.reflectionQuestion,
         interpretationPoints: option.interpretation.points ?? [],
       }
-      void saveData(
+      await saveData(
         {
           category,
           pattern: 'pattern_lens',
@@ -419,6 +428,10 @@ export default function PatternCategoryPage() {
         },
         null
       )
+      loadRecords(null).then((records) => {
+        setCompletedRecordsCount(records.length)
+        window.dispatchEvent(new CustomEvent('records-updated'))
+      })
     }
     const anonymousId = getOrCreateAnonymousId()
     addTrialAnswered(anonymousId, category, state.question.id)
@@ -430,6 +443,7 @@ export default function PatternCategoryPage() {
     setSelectedOptionId(null)
     setPreviewResponse(null)
     setPatternComment('')
+    setSelectedResonantTags([])
     resultSoundPlayedRef.current = false
     if (!nextQuestion) {
       setState({ status: 'trialComplete' })
@@ -442,15 +456,22 @@ export default function PatternCategoryPage() {
       existingResponse: null,
       isTrial: true,
     })
-  }, [state.status, (state as { isTrial?: boolean }).isTrial, 'question' in state ? state.question : undefined, category, trialQuestions, selectedOptionId, patternComment])
+  }, [state.status, (state as { isTrial?: boolean }).isTrial, 'question' in state ? state.question : undefined, category, trialQuestions, selectedOptionId, patternComment, selectedResonantTags])
 
   const handleRandomNext = useCallback(async () => {
     if (state.status !== 'ready' || !state.isRandomMode || !user?.id || !category) return
-    if (patternComment.trim() && activeResponse && state.question) {
+    const hasComment =
+      selectedResonantTags.length > 0 || patternComment.trim()
+    if (hasComment && activeResponse && state.question) {
       const baseContent = activeResponse.display_snapshot?.interpretationBody?.trim() ?? ''
+      const parts: string[] = []
+      if (selectedResonantTags.length > 0)
+        parts.push(`공감: ${selectedResonantTags.join(', ')}`)
+      if (patternComment.trim()) parts.push(`댓글: ${patternComment.trim()}`)
+      const append = parts.join('\n\n')
       const newContent = baseContent
-        ? `${baseContent}\n\n댓글: ${patternComment.trim()}`
-        : `댓글: ${patternComment.trim()}`
+        ? `${baseContent}\n\n${append}`
+        : append
       const records = await loadRecords(user.id)
       const match = records.find(
         (r) =>
@@ -465,6 +486,7 @@ export default function PatternCategoryPage() {
     setSelectedOptionId(null)
     setPreviewResponse(null)
     setPatternComment('')
+    setSelectedResonantTags([])
     resultSoundPlayedRef.current = false
     const question = await getRandomPatternQuestion(user.id, category)
     if (!question) {
@@ -478,7 +500,7 @@ export default function PatternCategoryPage() {
       existingResponse: null,
       isRandomMode: true,
     })
-  }, [state.status, (state as { isRandomMode?: boolean; question?: PatternLensQuestion }).isRandomMode, (state as { question?: PatternLensQuestion }).question, user?.id, category, patternComment, activeResponse])
+  }, [state.status, (state as { isRandomMode?: boolean; question?: PatternLensQuestion }).isRandomMode, (state as { question?: PatternLensQuestion }).question, user?.id, category, patternComment, selectedResonantTags, activeResponse])
 
   useEffect(() => {
     if (
@@ -613,7 +635,7 @@ export default function PatternCategoryPage() {
   const showResultFooter = state.status === 'ready' && !!activeResponse
 
   return (
-      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter ? 'pb-24' : ''}`}>
+      <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter ? 'pb-28' : ''}`}>
         <div className="mx-auto flex w-full max-w-md flex-col gap-6">
           <div className="text-center">
             <p className="text-sm font-medium text-[#8E7CFF]">{CATEGORY_LABELS[category]}</p>
@@ -874,15 +896,33 @@ export default function PatternCategoryPage() {
                   </div>
 
                   {activeResponse.display_snapshot.interpretationPoints.length > 0 && (
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {activeResponse.display_snapshot.interpretationPoints.map((point) => (
-                        <span
-                          key={point}
-                          className="inline-flex items-center whitespace-nowrap break-keep rounded-full bg-[#E8E2FF] px-4 py-2 text-[13px] font-medium text-[#5a4bb5]"
-                        >
-                          {point}
-                        </span>
-                      ))}
+                    <div className="mt-5">
+                      <p className="text-xs font-medium text-[#8E7CFF]">공감하는 태그 클릭</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {activeResponse.display_snapshot.interpretationPoints.map((point) => {
+                          const isSelected = selectedResonantTags.includes(point)
+                          return (
+                            <button
+                              key={point}
+                              type="button"
+                              onClick={() =>
+                                setSelectedResonantTags((prev) =>
+                                  prev.includes(point)
+                                    ? prev.filter((p) => p !== point)
+                                    : [...prev, point]
+                                )
+                              }
+                              className={`rounded-xl border px-3 py-2 text-sm transition-colors ${
+                                isSelected
+                                  ? 'border-[#8E7CFF] bg-[#F3EEFF] text-[#5a4bb5]'
+                                  : 'border-[#E8E2FF] bg-white text-[#666666] hover:border-[#D8CCFF] hover:bg-[#F8F5FF]'
+                              }`}
+                            >
+                              {point}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                   )}
                 </section>
@@ -890,13 +930,14 @@ export default function PatternCategoryPage() {
 
               {activeResponse && !isPreviewMode && (
                 <section className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium text-[#666666]">이 질문에 댓글 한 줄</p>
+                  <p className="text-sm font-medium text-[#333333]">한 줄 더 (선택)</p>
+                  <p className="mt-0.5 text-xs text-[#888888]">다음 질문 누르면 함께 저장돼요</p>
                   <div className="mt-2 flex gap-2">
                     <input
                       type="text"
                       value={patternComment}
                       onChange={(e) => setPatternComment(e.target.value)}
-                      placeholder="예: 나 요즘 확 그런 것 같아 (선택)"
+                      placeholder="또는 직접 적기 (선택)"
                       maxLength={100}
                       className="flex-1 rounded-xl border border-[#E8E2FF] px-4 py-2.5 text-sm text-[#333333] placeholder:text-[#999999] focus:border-[#8E7CFF] focus:outline-none"
                     />
@@ -905,14 +946,20 @@ export default function PatternCategoryPage() {
                         type="button"
                         onClick={async () => {
                           const comment = patternComment.trim()
-                          if (!comment || commentSaving) return
+                          if ((!comment && selectedResonantTags.length === 0) || commentSaving)
+                            return
                           setCommentSaving(true)
                           try {
                             const baseContent =
                               activeResponse?.display_snapshot?.interpretationBody?.trim() ?? ''
+                            const parts: string[] = []
+                            if (selectedResonantTags.length > 0)
+                              parts.push(`공감: ${selectedResonantTags.join(', ')}`)
+                            if (comment) parts.push(`댓글: ${comment}`)
+                            const append = parts.join('\n\n')
                             const newContent = baseContent
-                              ? `${baseContent}\n\n댓글: ${comment}`
-                              : `댓글: ${comment}`
+                              ? `${baseContent}\n\n${append}`
+                              : append
                             const records = await loadRecords(user.id)
                             const match = records.find(
                               (r) =>
@@ -925,22 +972,22 @@ export default function PatternCategoryPage() {
                               )
                               await updateRecordContent(match.id, newContent)
                               setPatternComment('')
-                              toast.success('댓글이 등록되었어요.')
+                              setSelectedResonantTags([])
+                              toast.success('등록되었어요.')
                             }
                           } finally {
                             setCommentSaving(false)
                           }
                         }}
-                        disabled={!patternComment.trim() || commentSaving}
+                        disabled={
+                          (selectedResonantTags.length === 0 && !patternComment.trim()) ||
+                          commentSaving
+                        }
                         className="shrink-0 rounded-xl bg-[#8E7CFF] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {commentSaving ? '등록 중...' : '등록'}
                       </button>
-                    ) : (
-                      <p className="shrink-0 self-center text-xs text-[#999999]">
-                        다음 질문을 누르면 함께 저장돼요
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 </section>
               )}
@@ -959,9 +1006,12 @@ export default function PatternCategoryPage() {
                 </section>
               )}
               {activeResponse && sessionResultCount >= 2 && sessionResultCount % 2 === 0 && (
-                <p className="text-center text-sm text-[#666666]">
-                  관찰을 멈추고 내 지금 생각을 남길 수도 있어요.
-                </p>
+                <Link
+                  href="/record"
+                  className="block text-center text-xs text-[#8E7CFF] hover:underline"
+                >
+                  관찰 멈추고 지금 생각 남기기 →
+                </Link>
               )}
             </>
           )}
@@ -987,8 +1037,8 @@ export default function PatternCategoryPage() {
           </div>
 
           {showResultFooter && (
-            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-              <div className="mx-auto flex max-w-md items-center justify-between gap-4 px-4 py-3">
+            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E8E2FF] bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+              <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
                 <Link
                   href="/observe"
                   className="shrink-0 rounded-xl p-2.5 text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
@@ -997,31 +1047,35 @@ export default function PatternCategoryPage() {
                 >
                   <RotateCcw className="h-5 w-5" />
                 </Link>
-                <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                  {(state.isRandomMode || state.isTrial) && (
-                    <button
-                      type="button"
-                      onClick={state.isTrial ? handleTrialNext : handleRandomNext}
-                      className="shrink-0 rounded-xl border border-[#8E7CFF] px-4 py-2.5 text-sm font-semibold text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
-                    >
-                      다음 질문 →
-                    </button>
-                  )}
-                  <Link
-                    href="/record"
-                    className="shrink-0 rounded-xl bg-[#8E7CFF] px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
-                  >
-                    지금 반응 남기기
-                  </Link>
+                {(state.isRandomMode || state.isTrial) && (
                   <button
                     type="button"
-                    onClick={handleDownloadResult}
-                    disabled={sharing}
-                    className="shrink-0 rounded-xl border border-[#8E7CFF] px-5 py-2.5 text-sm font-semibold text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF] disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={state.isTrial ? handleTrialNext : handleRandomNext}
+                    className="flex-1 rounded-xl bg-[#8E7CFF] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
                   >
-                    {sharing ? '이미지 생성 중...' : '내 패턴 저장하기'}
+                    다음 질문 →
                   </button>
-                </div>
+                )}
+                <Link
+                  href="/record"
+                  className="shrink-0 rounded-xl border border-[#8E7CFF] px-4 py-2.5 text-center text-sm font-semibold text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF]"
+                >
+                  지금 반응
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleDownloadResult}
+                  disabled={sharing}
+                  className="shrink-0 rounded-xl p-2.5 text-[#8E7CFF] transition-colors hover:bg-[#E8E2FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  title="내 패턴 저장하기"
+                  aria-label="내 패턴 저장하기"
+                >
+                  {sharing ? (
+                    <span className="text-xs">생성 중</span>
+                  ) : (
+                    <Download className="h-5 w-5" />
+                  )}
+                </button>
               </div>
             </div>
           )}

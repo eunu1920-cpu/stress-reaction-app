@@ -9,10 +9,10 @@ export default function HomePage() {
         {/* HERO 영역 - 메시지 중심 */}
         <section className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-[#333333] md:text-3xl">
-            나를 바꾸고 싶나요?
+            나를 보기만 해도 충분해요
           </h1>
           <p className="text-base text-[#555555]">
-            변화는 관찰에서 시작됩니다.
+            관찰하면 알아요. 인정만 해도 된다는 걸.
           </p>
           <p className="text-sm text-[#666666]">
             관찰 → 구조 확인 → 기록 → 패턴 분석 → 이해

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { loadRecords } from '@/lib/storage'
 import { fetchLatestAnalysis } from '@/lib/analysis-storage'
@@ -20,6 +20,18 @@ export function PatternProgressBanner({
   const { user } = useAuth()
   const [resolvedCount, setResolvedCount] = useState(currentCount ?? 0)
   const [recordsAtLastAnalysis, setRecordsAtLastAnalysis] = useState<number | null>(null)
+
+  const refetch = useCallback(() => {
+    Promise.all([
+      loadRecords(user?.id ?? null),
+      user?.id ? fetchLatestAnalysis(user.id) : Promise.resolve(null),
+    ]).then(([records, latestAnalysis]) => {
+      if (typeof currentCount !== 'number') {
+        setResolvedCount(records.length)
+      }
+      setRecordsAtLastAnalysis(latestAnalysis?.recordCount ?? null)
+    })
+  }, [currentCount, user?.id])
 
   useEffect(() => {
     if (typeof currentCount === 'number') {
@@ -44,6 +56,12 @@ export function PatternProgressBanner({
     }
   }, [currentCount, user?.id])
 
+  useEffect(() => {
+    const handler = () => refetch()
+    window.addEventListener('records-updated', handler)
+    return () => window.removeEventListener('records-updated', handler)
+  }, [refetch])
+
   const progressCount = useMemo(
     () => getAnalysisProgress(resolvedCount, recordsAtLastAnalysis).progressCount,
     [recordsAtLastAnalysis, resolvedCount]
@@ -59,6 +77,9 @@ export function PatternProgressBanner({
       >
         <p className="text-center text-sm font-semibold leading-none text-[#5a4bb5]">
           패턴 분석까지 {progressCount} / {totalCount}
+        </p>
+        <p className="mt-1 text-center text-xs text-[#888888]">
+          {totalCount}개 모이면 종합분석에서 패턴을 보여드려요
         </p>
 
         <div className="mt-2 flex items-center justify-center gap-1.5">
