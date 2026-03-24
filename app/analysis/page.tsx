@@ -53,25 +53,6 @@ function getCategory(resultType: string): string {
   return 'stress'
 }
 
-function recordsToApiFormat(records: ObservationRecord[]) {
-  return records.map((r) => {
-    const situationArr = parseJsonArray(r.answers?.q1 ?? '')
-    const bodyArr = parseJsonArray(r.answers?.q2 ?? '')
-    const behaviorArr = parseJsonArray(r.answers?.q3 ?? '')
-    return {
-      date: r.date,
-      situationTags: situationArr ?? [CATEGORY_LABELS[getCategory(r.resultType)] ?? ''],
-      bodyReactionTags: bodyArr ?? [],
-      behaviorTags: behaviorArr ?? [],
-      content:
-        r.sourceKind === 'manual_record'
-          ? (r.memo ?? r.summary ?? '').trim()
-          : '',
-      sourceKind: r.sourceKind ?? (r.pattern === 'manual_record' ? 'manual_record' : r.pattern === 'stress_test' ? 'stress_test' : 'pattern_lens'),
-    }
-  })
-}
-
 const SUBJECTS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'] as const
 const RELATION_SUBJECTS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8'] as const
 const INNER_SUBJECTS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'] as const
@@ -112,6 +93,87 @@ const INNER_LABELS: Record<string, string> = {
 function getRecordPatternCode(record: ObservationRecord): string {
   const type = (record.resultType || record.patternCode || record.pattern || '').toUpperCase()
   return type
+}
+
+/** 패턴 돋보기: API에는 긴 시나리오 대신 영역·유형 코드만 전달 */
+const PATTERN_AREA_LABELS: Record<string, string> = {
+  stress: '상황스트레스',
+  relation: '관계 상황',
+  self: '개인 상황',
+}
+
+function isPatternLensRecord(r: ObservationRecord): boolean {
+  return r.sourceKind === 'pattern_lens' || r.pattern === 'pattern_lens'
+}
+
+function getPatternTypeLabel(code: string): string {
+  const c = code.toUpperCase()
+  return SUBJECT_LABELS[c] || RELATION_LABELS[c] || INNER_LABELS[c] || c
+}
+
+/** 해석 본문이 아닌 사용자가 남긴 공감/댓글 줄만 */
+function extractUserAnnotationFromMemo(memo: string): string {
+  const lines = memo
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const picked = lines.filter((l) => l.startsWith('공감:') || l.startsWith('댓글:'))
+  return picked.join('\n')
+}
+
+function shortenGenericSituationTags(tags: string[], maxChars: number): string[] {
+  return tags.map((t) => (t.length <= maxChars ? t : `${t.slice(0, maxChars)}… [생략]`))
+}
+
+function buildSituationTagsForApi(
+  r: ObservationRecord,
+  situationArr: string[] | null
+): string[] {
+  if (isPatternLensRecord(r)) {
+    const code = getRecordPatternCode(r)
+    const area = r.category
+      ? (PATTERN_AREA_LABELS[r.category] ?? r.category)
+      : '패턴'
+    const label = getPatternTypeLabel(code)
+    return [`[패턴 돋보기] ${area} · ${label} (${code})`]
+  }
+  const raw =
+    situationArr?.filter(Boolean) ?? [CATEGORY_LABELS[getCategory(r.resultType)] ?? '']
+  return shortenGenericSituationTags(raw, 140)
+}
+
+function recordsToApiFormat(records: ObservationRecord[]) {
+  return records.map((r) => {
+    const situationArr = parseJsonArray(r.answers?.q1 ?? '')
+    const bodyArr = parseJsonArray(r.answers?.q2 ?? '')
+    const behaviorArr = parseJsonArray(r.answers?.q3 ?? '')
+    const memo = (r.memo ?? '').trim()
+    const isManual =
+      r.sourceKind === 'manual_record' || r.pattern === 'manual_record'
+
+    let content = ''
+    if (isManual) {
+      content = memo || (r.summary ?? '').trim()
+    } else if (isPatternLensRecord(r)) {
+      content =
+        extractUserAnnotationFromMemo(memo) || '(직접 작성한 한 줄·공감 없음)'
+    }
+
+    return {
+      date: r.date,
+      situationTags: buildSituationTagsForApi(r, situationArr),
+      bodyReactionTags: bodyArr ?? [],
+      behaviorTags: behaviorArr ?? [],
+      content,
+      sourceKind:
+        r.sourceKind ??
+        (isManual
+          ? 'manual_record'
+          : r.pattern === 'stress_test'
+            ? 'stress_test'
+            : 'pattern_lens'),
+    }
+  })
 }
 
 function buildChartDataFromRecords(

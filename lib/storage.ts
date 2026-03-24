@@ -125,7 +125,7 @@ function generateLocalId(): string {
   return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-/** 공통 저장: 로그인→Supabase, 비로그인→localStorage */
+/** 공통 저장: 로그인·익명→Supabase, 익명 불가 시에만 localStorage */
 export async function saveData(
   params: SaveRecordParams,
   userId: string | null
@@ -133,6 +133,16 @@ export async function saveData(
   if (userId) {
     const { saveRecord } = await import('@/lib/save-record')
     return saveRecord({ ...params, userId })
+  }
+
+  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+  const anon = await ensureAnonymousSession()
+  if (anon) {
+    if (getLocalTempRecords().length > 0) {
+      await migrateLocalToSupabase(anon.userId)
+    }
+    const { saveRecord } = await import('@/lib/save-record')
+    return saveRecord({ ...params, userId: anon.userId })
   }
 
   const data = getLocalTempData()
@@ -153,12 +163,23 @@ export async function saveData(
   return true
 }
 
-/** 공통 조회: 로그인→Supabase, 비로그인→localStorage */
+/** 공통 조회: 로그인·익명→Supabase, 익명 불가 시에만 localStorage */
 export async function loadRecords(userId: string | null): Promise<ObservationRecord[]> {
   if (userId) {
     const { fetchRecords } = await import('@/lib/history-storage')
     return fetchRecords(userId)
   }
+
+  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+  const anon = await ensureAnonymousSession()
+  if (anon) {
+    if (getLocalTempRecords().length > 0) {
+      await migrateLocalToSupabase(anon.userId)
+    }
+    const { fetchRecords } = await import('@/lib/history-storage')
+    return fetchRecords(anon.userId)
+  }
+
   const data = getLocalTempData()
   return data.records.map(localRecordToObservation)
 }
@@ -230,9 +251,9 @@ export type ProgressResult = {
 
 /** 체험 완료: 테스트 2종 + 기록 1회 */
 export async function checkProgressAsync(userId: string | null): Promise<ProgressResult> {
-  if (userId) {
-    const { fetchRecords } = await import('@/lib/history-storage')
-    const records = await fetchRecords(userId)
+  const { fetchRecords } = await import('@/lib/history-storage')
+
+  const fromRecords = (records: ObservationRecord[]): ProgressResult => {
     const testCats = new Set<string>()
     let manualCount = 0
     records.forEach((r) => {
@@ -250,6 +271,22 @@ export async function checkProgressAsync(userId: string | null): Promise<Progres
       isComplete: testCats.size >= 2 && manualCount >= 1,
     }
   }
+
+  if (userId) {
+    const records = await fetchRecords(userId)
+    return fromRecords(records)
+  }
+
+  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+  const anon = await ensureAnonymousSession()
+  if (anon) {
+    if (getLocalTempRecords().length > 0) {
+      await migrateLocalToSupabase(anon.userId)
+    }
+    const records = await fetchRecords(anon.userId)
+    return fromRecords(records)
+  }
+
   const data = getLocalTempData()
   const tests = [...new Set(data.progress.testsCompleted)]
   const manualCount = data.records.filter((r) => r.pattern === 'manual_record').length
@@ -268,7 +305,7 @@ export function getLocalTempRecords(): LocalRecord[] {
   return getLocalTempData().records
 }
 
-/** 메모 업데이트: 로그인→Supabase, 비로그인→localStorage */
+/** 메모 업데이트: 로그인·익명→Supabase, 익명 불가 시에만 localStorage */
 export async function updateRecordMemo(
   recordId: string,
   content: string,
@@ -278,6 +315,17 @@ export async function updateRecordMemo(
     const { updateRecordContent } = await import('@/lib/history-storage')
     return updateRecordContent(recordId, content)
   }
+
+  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+  const anon = await ensureAnonymousSession()
+  if (anon) {
+    if (getLocalTempRecords().length > 0) {
+      await migrateLocalToSupabase(anon.userId)
+    }
+    const { updateRecordContent } = await import('@/lib/history-storage')
+    return updateRecordContent(recordId, content)
+  }
+
   const data = getLocalTempData()
   const idx = data.records.findIndex((r) => r.id === recordId)
   if (idx < 0) return false
@@ -306,7 +354,7 @@ export function hasTestTodayLocal(): boolean {
   })
 }
 
-/** 레코드 삭제: 로그인→Supabase, 비로그인→localStorage */
+/** 레코드 삭제: 로그인·익명→Supabase, 익명 불가 시에만 localStorage */
 export async function deleteRecordHybrid(
   recordId: string,
   userId: string | null
@@ -315,6 +363,17 @@ export async function deleteRecordHybrid(
     const { deleteRecord } = await import('@/lib/history-storage')
     return deleteRecord(recordId)
   }
+
+  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+  const anon = await ensureAnonymousSession()
+  if (anon) {
+    if (getLocalTempRecords().length > 0) {
+      await migrateLocalToSupabase(anon.userId)
+    }
+    const { deleteRecord } = await import('@/lib/history-storage')
+    return deleteRecord(recordId)
+  }
+
   const data = getLocalTempData()
   const idx = data.records.findIndex((r) => r.id === recordId)
   if (idx < 0) return false

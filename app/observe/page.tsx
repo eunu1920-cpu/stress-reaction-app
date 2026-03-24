@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { PatternFlowGuide } from '@/components/pattern-flow-guide'
 import { useAuth } from '@/lib/auth-context'
 import { hasCompletedStressTest } from '@/lib/daily-limits'
 
@@ -37,6 +38,7 @@ export default function ObservePage() {
 
         {isGuest ? (
           <>
+            <PatternFlowGuide activeStep={1} defaultOpen />
             {/* 비회원: 패턴 돋보기만 강조 */}
             <section className="rounded-2xl border border-[#E8E2FF] bg-white px-6 py-8 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-[#333333]">
@@ -45,9 +47,12 @@ export default function ObservePage() {
               <p className="mt-2 text-sm leading-relaxed text-[#555555]">
                 질문을 통해 반응 패턴을 살펴봅니다.
               </p>
+              <p className="mt-3 text-xs font-medium text-[#8E7CFF]">
+                ① 아래 보라색 버튼을 눌러 시작해요
+              </p>
               <Link
                 href="/pattern"
-                className="mt-6 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                className="mt-4 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white shadow-md transition-all hover:bg-[#7D6BEE] active:scale-[0.98]"
               >
                 패턴 체험 시작
               </Link>
@@ -55,6 +60,7 @@ export default function ObservePage() {
           </>
         ) : isReturningMode ? (
           <>
+            <PatternFlowGuide defaultOpen={false} />
             {/* 재방문 모드: 테스트 슬림 배너 */}
             <section className="rounded-xl border border-[#E8E2FF] bg-white px-4 py-3 text-center shadow-sm">
               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -79,7 +85,7 @@ export default function ObservePage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
                 <Link
                   href="/record"
-                  className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-[#DCCFFF] bg-[#8E7CFF] px-6 py-6 text-center shadow-sm transition-colors hover:bg-[#7D6BEE] hover:border-[#CBB8FF]"
+                  className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-[#DCCFFF] bg-[#8E7CFF] px-6 py-6 text-center shadow-md transition-all hover:bg-[#7D6BEE] hover:border-[#CBB8FF] active:scale-[0.98]"
                 >
                   <span className="text-base font-semibold text-white">
                     지금 반응 기록하기
@@ -91,7 +97,7 @@ export default function ObservePage() {
 
                 <Link
                   href="/pattern"
-                  className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-[#DCCFFF] bg-white px-6 py-6 text-center shadow-sm transition-colors hover:border-[#CBB8FF] hover:bg-[#F8F5FF]"
+                  className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-[#E8E2FF] bg-white px-6 py-6 text-center shadow-sm transition-all hover:border-[#CFC2FF] hover:bg-[#F8F5FF] active:scale-[0.98]"
                 >
                   <span className="text-base font-semibold text-[#5a4bb5]">
                     패턴 돋보기 <span aria-hidden="true">🔎</span>
@@ -115,6 +121,7 @@ export default function ObservePage() {
           </>
         ) : (
           <>
+            <PatternFlowGuide defaultOpen />
             {/* 최초 방문/미완료: 테스트 메인 */}
             <section className="rounded-2xl border border-[#E8E2FF] bg-white px-6 py-7 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-[#333333]">
@@ -124,9 +131,12 @@ export default function ObservePage() {
                 간단한 질문으로 스트레스 반응 패턴을 확인합니다.
               </p>
 
+              <p className="mt-3 text-xs font-medium text-[#8E7CFF]">
+                ① 보라색 버튼으로 스트레스 패턴 확인 또는 아래 패턴 돋보기
+              </p>
               <Link
                 href="/stress"
-                className="mt-5 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                className="mt-3 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white shadow-md transition-all hover:bg-[#7D6BEE] active:scale-[0.98]"
               >
                 테스트 시작
               </Link>
@@ -158,9 +168,12 @@ export default function ObservePage() {
                 질문을 통해 반응 패턴을 살펴봅니다.
               </p>
 
+              <p className="mt-3 text-xs font-medium text-[#8E7CFF]">
+                ② 패턴 돋보기: 관심 카테고리를 눌러요
+              </p>
               <Link
                 href="/pattern"
-                className="mt-5 inline-flex w-full max-w-sm items-center justify-center rounded-2xl border border-[#DCCFFF] bg-white px-8 py-4 text-base font-semibold text-[#5a4bb5] transition-colors hover:border-[#CBB8FF] hover:bg-[#F8F5FF]"
+                className="mt-4 inline-flex w-full max-w-sm items-center justify-center rounded-2xl border-2 border-[#DCCFFF] bg-white px-8 py-4 text-base font-semibold text-[#5a4bb5] shadow-sm transition-all hover:border-[#CBB8FF] hover:bg-[#F8F5FF] active:scale-[0.98]"
               >
                 질문 시작
               </Link>

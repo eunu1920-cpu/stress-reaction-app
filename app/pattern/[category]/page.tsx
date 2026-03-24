@@ -22,6 +22,7 @@ import { useAuth } from '@/lib/auth-context'
 import { saveData, loadRecords } from '@/lib/storage'
 import { toBlob } from 'html-to-image'
 import { toast } from 'sonner'
+import { PatternFlowGuide, PatternFlowStepHint } from '@/components/pattern-flow-guide'
 import { TimedSelectionOptions } from '@/components/timed-selection-options'
 import { playSound } from '@/lib/play-sound'
 import { getRandomTimeoutOption } from '@/lib/pattern-lens/timeout-interpretations'
@@ -642,6 +643,14 @@ export default function PatternCategoryPage() {
             <h1 className="mt-2 text-2xl font-bold text-[#333333]">오늘의 관찰 질문</h1>
           </div>
 
+          {!isPreviewMode && (
+            <PatternFlowGuide
+              activeStep={showResultFooter ? 4 : 3}
+              defaultOpen={false}
+              className="w-full"
+            />
+          )}
+
           {state.status === 'ready' && state.isTrial && state.question && category !== 'relation' && (
             <section className="rounded-2xl border border-[#DDD4FF] bg-[#F8F5FF] p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
@@ -802,6 +811,17 @@ export default function PatternCategoryPage() {
 
               {(!activeResponse || isPreviewMode) && (
                 <>
+                  <div className="space-y-1 px-0.5">
+                    <PatternFlowStepHint step={3}>
+                      가장 가까운 답을 <strong className="font-semibold text-[#333333]">눌러서</strong>{' '}
+                      골라요
+                    </PatternFlowStepHint>
+                    {state.isTrial && !isPreviewMode && (
+                      <p className="text-xs leading-relaxed text-[#888888]">
+                        30초 안에 고르지 않으면, 임의로 하나가 선택돼요.
+                      </p>
+                    )}
+                  </div>
                   {state.isTrial && !isPreviewMode ? (
                     <TimedSelectionOptions
                       key={state.question.id}
@@ -821,7 +841,7 @@ export default function PatternCategoryPage() {
                           type="button"
                           onClick={() => handleSelect(option)}
                           disabled={saving}
-                          className={`flex min-h-[120px] w-full flex-col justify-start rounded-3xl border px-6 py-5 text-left text-[15px] font-medium text-[#333333] shadow-sm transition-colors hover:border-[#D8CCFF] hover:bg-[#FAF8FF] disabled:cursor-not-allowed disabled:opacity-60 ${
+                          className={`flex min-h-[120px] w-full flex-col justify-start rounded-3xl border-2 px-6 py-5 text-left text-[15px] font-medium text-[#333333] shadow-sm transition-all hover:border-[#CFC2FF] hover:bg-[#FAF8FF] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${
                             selectedOptionId === option.id
                               ? 'border-[#CFC2FF] bg-[#F3EEFF]'
                               : 'border-[#E8E2FF] bg-white'
@@ -930,8 +950,13 @@ export default function PatternCategoryPage() {
 
               {activeResponse && !isPreviewMode && (
                 <section className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
-                  <p className="text-sm font-medium text-[#333333]">한 줄 더 (선택)</p>
-                  <p className="mt-0.5 text-xs text-[#888888]">다음 질문 누르면 함께 저장돼요</p>
+                  <PatternFlowStepHint step={4}>
+                    해석을 보신 뒤, 공감 태그·한 줄을 남기면 패턴이 더 정확해져요 (선택)
+                  </PatternFlowStepHint>
+                  <p className="mt-3 text-sm font-medium text-[#333333]">한 줄 더 (선택)</p>
+                  <p className="mt-0.5 text-xs text-[#888888]">
+                    아래 보라색 「다음 질문」을 누르면 함께 저장돼요
+                  </p>
                   <div className="mt-2 flex gap-2">
                     <input
                       type="text"
@@ -1048,13 +1073,18 @@ export default function PatternCategoryPage() {
                   <RotateCcw className="h-5 w-5" />
                 </Link>
                 {(state.isRandomMode || state.isTrial) && (
-                  <button
-                    type="button"
-                    onClick={state.isTrial ? handleTrialNext : handleRandomNext}
-                    className="flex-1 rounded-xl bg-[#8E7CFF] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
-                  >
-                    다음 질문 →
-                  </button>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={state.isTrial ? handleTrialNext : handleRandomNext}
+                      className="w-full rounded-xl bg-[#8E7CFF] px-5 py-3 text-center text-sm font-semibold text-white shadow-md transition-all hover:bg-[#7D6BEE] active:scale-[0.98]"
+                    >
+                      다음 질문 →
+                    </button>
+                    <span className="text-center text-[10px] text-[#888888]">
+                      저장 후 이어서 진행해요 · 5개 모이면 종합분석
+                    </span>
+                  </div>
                 )}
                 <Link
                   href="/record"

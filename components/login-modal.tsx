@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   Dialog,
   DialogContent,
@@ -121,6 +122,22 @@ export function LoginModal({
               )}
             </div>
           )}
+          <p className="pt-3 text-center text-[11px] leading-relaxed text-[#999999]">
+            <Link
+              href="/privacy"
+              className="text-[#8E7CFF] underline-offset-2 hover:underline"
+              onClick={() => onOpenChange(false)}
+            >
+              개인정보 및 이용 안내
+            </Link>
+            <span className="text-[#CCCCCC]"> · </span>
+            <a
+              href="mailto:eunu1920@gmail.com"
+              className="text-[#8E7CFF] underline-offset-2 hover:underline"
+            >
+              문의
+            </a>
+          </p>
         </div>
       </DialogContent>
     </Dialog>

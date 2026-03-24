@@ -79,7 +79,11 @@ export function PatternProgressBanner({
           패턴 분석까지 {progressCount} / {totalCount}
         </p>
         <p className="mt-1 text-center text-xs text-[#888888]">
-          {totalCount}개 모이면 종합분석에서 패턴을 보여드려요
+          질문에 답할 때마다 1씩 쌓여요
+        </p>
+        <p className="mt-0.5 text-center text-xs text-[#888888]">
+          {totalCount}개 모이면{' '}
+          <span className="font-medium text-[#666666]">종합분석</span>에서 AI 패턴을 볼 수 있어요
         </p>
 
         <div className="mt-2 flex items-center justify-center gap-1.5">

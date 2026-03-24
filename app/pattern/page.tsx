@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { PatternFlowGuide, PatternFlowStepHint } from '@/components/pattern-flow-guide'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 
@@ -47,10 +48,18 @@ export default function PatternPage() {
   return (
     <main className="min-h-screen bg-[#F5F3FA] px-4 py-10">
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6">
+        <PatternFlowGuide activeStep={2} defaultOpen={false} className="w-full" />
+
         <div className="w-full text-center">
           <h1 className="text-2xl font-bold text-[#333333]">
             패턴 돋보기 <span aria-hidden="true">🔎</span>
           </h1>
+
+          <div className="mt-4 text-left px-1">
+            <PatternFlowStepHint step={2}>
+              지금 가장 와닿는 쪽을 <strong className="font-semibold text-[#333333]">눌러서</strong> 골라요
+            </PatternFlowStepHint>
+          </div>
 
           <div className="mt-5 space-y-1 text-center">
             <p className="text-sm font-semibold text-[#333333]">
@@ -82,9 +91,12 @@ export default function PatternPage() {
                 key={item.id}
                 onClick={() => handleCategoryClick(item)}
                 href={`/pattern/${item.id}`}
-                className="w-full rounded-3xl border border-[#E8E2FF] bg-white px-6 py-5 text-center text-base font-semibold text-[#333333] shadow-sm transition-colors hover:border-[#D8CCFF] hover:bg-[#FAF8FF]"
+                className="w-full rounded-3xl border-2 border-[#E8E2FF] bg-white px-6 py-5 text-center text-base font-semibold text-[#333333] shadow-sm transition-all hover:border-[#CFC2FF] hover:bg-[#FAF8FF] hover:shadow-md active:scale-[0.98]"
               >
                 <span className="block">{item.label}</span>
+                <span className="mt-1.5 block text-xs font-medium text-[#8E7CFF]">
+                  눌러서 선택 →
+                </span>
               </Link>
             ))}
           </div>

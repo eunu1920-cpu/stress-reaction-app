@@ -8,14 +8,24 @@ function getTodayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+async function resolveUserIdForDailyLimits(
+  userId?: string | null
+): Promise<string | null> {
+  if (userId) return userId
+  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+  const anon = await ensureAnonymousSession()
+  return anon?.userId ?? null
+}
+
 export async function hasManualRecordToday(userId?: string | null): Promise<boolean> {
-  if (userId) {
+  const uid = await resolveUserIdForDailyLimits(userId ?? null)
+  if (uid) {
     const todayStart = `${getTodayKey()}T00:00:00.000Z`
     const todayEnd = `${getTodayKey()}T23:59:59.999Z`
     const { data } = await supabase
       .from('records')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', uid)
       .eq('pattern', 'manual_record')
       .gte('created_at', todayStart)
       .lte('created_at', todayEnd)
@@ -26,13 +36,14 @@ export async function hasManualRecordToday(userId?: string | null): Promise<bool
 }
 
 export async function hasTestToday(userId?: string | null): Promise<boolean> {
-  if (userId) {
+  const uid = await resolveUserIdForDailyLimits(userId ?? null)
+  if (uid) {
     const todayStart = `${getTodayKey()}T00:00:00.000Z`
     const todayEnd = `${getTodayKey()}T23:59:59.999Z`
     const { data } = await supabase
       .from('records')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', uid)
       .neq('pattern', 'manual_record')
       .gte('created_at', todayStart)
       .lte('created_at', todayEnd)
@@ -48,11 +59,12 @@ const STRESS_TEST_PATTERNS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
 export async function hasCompletedStressTest(
   userId?: string | null
 ): Promise<boolean> {
-  if (!userId) return false
+  const uid = await resolveUserIdForDailyLimits(userId ?? null)
+  if (!uid) return false
   const { data } = await supabase
     .from('records')
     .select('id, source_kind, pattern')
-    .eq('user_id', userId)
+    .eq('user_id', uid)
     .limit(200)
   if (!data?.length) return false
   return data.some(
