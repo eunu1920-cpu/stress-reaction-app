@@ -1,3 +1,27 @@
+/** 레이더 차트 예시 (비로그인·익명·데모용, 실제 기록 아님) */
+const S_SUBJECTS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'] as const
+const R_SUBJECTS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8'] as const
+const T_SUBJECTS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'] as const
+
+const SAMPLE_STRESS_VALUES = [2, 1, 3, 2, 1, 2, 1, 1]
+const SAMPLE_RELATION_VALUES = [1, 2, 1, 3, 2, 1, 2, 1]
+const SAMPLE_INNER_VALUES = [1, 1, 2, 2, 3, 1, 1, 2]
+
+export const SAMPLE_RADAR_STRESS = S_SUBJECTS.map((subject, i) => ({
+  subject,
+  value: SAMPLE_STRESS_VALUES[i] ?? 1,
+}))
+
+export const SAMPLE_RADAR_RELATION = R_SUBJECTS.map((subject, i) => ({
+  subject,
+  value: SAMPLE_RELATION_VALUES[i] ?? 1,
+}))
+
+export const SAMPLE_RADAR_INNER = T_SUBJECTS.map((subject, i) => ({
+  subject,
+  value: SAMPLE_INNER_VALUES[i] ?? 1,
+}))
+
 /** AI 분석 샘플 (실제 분석 아님) */
 export const SAMPLE_ANALYSIS = `[현재 패턴]
 8가지 유형 중 가장 가까운 스트레스 유형은 '집중과부하형'입니다. 이 구조는 과도한 정보 처리와 멀티태스킹으로 인한 집중 고착이 지속되며, 결국 몸과 마음의 탈진으로 이어지는 경향을 보입니다.

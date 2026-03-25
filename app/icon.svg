@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MyView">
+  <rect width="512" height="512" fill="#F5F3FA" />
+  <path
+    fill="#8E7CFF"
+    d="M 88 412 L 88 100 L 162 100 L 256 218 L 350 100 L 424 100 L 424 412 L 352 412 L 256 304 L 160 412 Z"
+  />
+</svg>

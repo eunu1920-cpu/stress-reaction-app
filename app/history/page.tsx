@@ -17,10 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ANALYSIS_BATCH_SIZE } from '@/lib/analysis-progress'
 import { cn } from '@/lib/utils'
 import { ChevronDownIcon } from 'lucide-react'
 
-const SEVEN_RECORDS_POPUP_KEY = 'myview_7_records_popup_shown'
+const RECORDS_MILESTONE_POPUP_KEY = 'myview_5_records_popup_shown'
 
 const VIEW_TABS = [
   { id: 'timeline', label: '타임라인' },
@@ -247,7 +248,7 @@ export default function HistoryPage() {
   const [category, setCategory] = useState<CategoryId>('all')
   const [calendarMonth, setCalendarMonth] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [showSevenRecordsPopup, setShowSevenRecordsPopup] = useState(false)
+  const [showRecordsMilestonePopup, setShowRecordsMilestonePopup] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -269,11 +270,11 @@ export default function HistoryPage() {
   }, [user?.id])
 
   useEffect(() => {
-    if (!history || history.length < 7) return
+    if (!history || history.length < ANALYSIS_BATCH_SIZE) return
     if (typeof sessionStorage === 'undefined') return
-    if (sessionStorage.getItem(SEVEN_RECORDS_POPUP_KEY)) return
-    sessionStorage.setItem(SEVEN_RECORDS_POPUP_KEY, '1')
-    setShowSevenRecordsPopup(true)
+    if (sessionStorage.getItem(RECORDS_MILESTONE_POPUP_KEY)) return
+    sessionStorage.setItem(RECORDS_MILESTONE_POPUP_KEY, '1')
+    setShowRecordsMilestonePopup(true)
   }, [history])
 
   const recordsByDate = useMemo(() => {
@@ -592,20 +593,20 @@ export default function HistoryPage() {
         )}
       </div>
 
-      <Dialog open={showSevenRecordsPopup} onOpenChange={setShowSevenRecordsPopup}>
+      <Dialog open={showRecordsMilestonePopup} onOpenChange={setShowRecordsMilestonePopup}>
         <DialogContent className="sm:max-w-md border-[#E8E2FF] bg-white">
           <DialogHeader>
             <DialogTitle className="text-center text-[#333333]">
-              7개의 기록이 쌓였어요
+              {ANALYSIS_BATCH_SIZE}개의 기록이 쌓였어요
             </DialogTitle>
             <DialogDescription className="text-center text-[#555555] pt-2">
-              7개의 기록이 쌓여 당신의 패턴을 종합해서 보여드릴 수 있어요.
+              {ANALYSIS_BATCH_SIZE}개의 기록이 쌓여 당신의 패턴을 종합해서 보여드릴 수 있어요.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col gap-2 sm:flex-col pt-4">
             <Link
               href="/analysis"
-              onClick={() => setShowSevenRecordsPopup(false)}
+              onClick={() => setShowRecordsMilestonePopup(false)}
               className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
             >
               종합분석 바로보기

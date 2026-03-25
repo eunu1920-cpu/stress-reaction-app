@@ -125,6 +125,12 @@ function generateLocalId(): string {
   return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+/** 기록 저장 후 UI(배너·모달)가 갱신되도록 알림 */
+export function dispatchRecordsUpdated(): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('records-updated'))
+}
+
 /** 공통 저장: 로그인·익명→Supabase, 익명 불가 시에만 localStorage */
 export async function saveData(
   params: SaveRecordParams,
@@ -132,7 +138,9 @@ export async function saveData(
 ): Promise<boolean> {
   if (userId) {
     const { saveRecord } = await import('@/lib/save-record')
-    return saveRecord({ ...params, userId })
+    const ok = await saveRecord({ ...params, userId })
+    if (ok) dispatchRecordsUpdated()
+    return ok
   }
 
   const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
@@ -142,7 +150,9 @@ export async function saveData(
       await migrateLocalToSupabase(anon.userId)
     }
     const { saveRecord } = await import('@/lib/save-record')
-    return saveRecord({ ...params, userId: anon.userId })
+    const ok = await saveRecord({ ...params, userId: anon.userId })
+    if (ok) dispatchRecordsUpdated()
+    return ok
   }
 
   const data = getLocalTempData()
@@ -160,6 +170,7 @@ export async function saveData(
   }
 
   setLocalTempData(data)
+  dispatchRecordsUpdated()
   return true
 }
 

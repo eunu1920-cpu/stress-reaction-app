@@ -13,15 +13,14 @@ import { getLocalAnalysis, loadRecords, setLocalAnalysis } from '@/lib/storage'
 import type { ObservationRecord } from '@/lib/history-storage'
 import { fetchAnalysisHistory, saveAnalysis, type StoredAnalysis } from '@/lib/analysis-storage'
 import { ANALYSIS_BATCH_SIZE, getAnalysisProgress } from '@/lib/analysis-progress'
-import { SAMPLE_ANALYSIS } from '@/lib/analysis-sample-data'
+import {
+  SAMPLE_ANALYSIS,
+  SAMPLE_RADAR_INNER,
+  SAMPLE_RADAR_RELATION,
+  SAMPLE_RADAR_STRESS,
+} from '@/lib/analysis-sample-data'
 import { useAuth } from '@/lib/auth-context'
 import { LoginModal } from '@/components/login-modal'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 
 const CATEGORY_LABELS: Record<string, string> = {
   stress: '스트레스 상황',
@@ -219,7 +218,9 @@ function formatDateTimeShort(iso: string) {
 }
 
 export default function AnalysisPage() {
-  const { user, login } = useAuth()
+  const { user, login, isDemoMode } = useAuth()
+  /** 이메일·구글 등 계정 로그인만 실제 기록 그래프 (익명·비로그인·데모는 샘플) */
+  const showRealCharts = Boolean(user?.email?.trim()) && !isDemoMode
   const [data, setData] = useState<{ subject: string; value: number }[]>(initialChartData)
   const [relationData, setRelationData] = useState<{ subject: string; value: number }[]>(initialRelationData)
   const [innerData, setInnerData] = useState<{ subject: string; value: number }[]>(initialInnerData)
@@ -356,17 +357,21 @@ export default function AnalysisPage() {
     }
   }, [records, user?.id, analysisLoading, fetchAnalysis, latestAnalysis])
 
+  const displayStress = showRealCharts ? data : SAMPLE_RADAR_STRESS
+  const displayRelation = showRealCharts ? relationData : SAMPLE_RADAR_RELATION
+  const displayInner = showRealCharts ? innerData : SAMPLE_RADAR_INNER
+
   const domainMax = useMemo(() => {
-    const max = Math.max(1, ...data.map((d) => d.value))
+    const max = Math.max(1, ...displayStress.map((d) => d.value))
     return max
-  }, [data])
+  }, [displayStress])
   const relationDomainMax = useMemo(
-    () => Math.max(1, ...relationData.map((d) => d.value)),
-    [relationData]
+    () => Math.max(1, ...displayRelation.map((d) => d.value)),
+    [displayRelation]
   )
   const innerDomainMax = useMemo(
-    () => Math.max(1, ...innerData.map((d) => d.value)),
-    [innerData]
+    () => Math.max(1, ...displayInner.map((d) => d.value)),
+    [displayInner]
   )
 
   const hasData = data.some((d) => d.value > 0)
@@ -520,27 +525,26 @@ export default function AnalysisPage() {
           </div>
         </section>
 
-        <Accordion type="multiple" defaultValue={[]} className="space-y-4">
-          {/* Test Results */}
-          <AccordionItem
-            value="tests"
-            className="rounded-xl border border-[#E8E2FF] bg-white shadow-sm overflow-hidden"
-          >
-            <AccordionTrigger className="px-6 py-4 hover:no-underline [&[data-state=open]>svg]:rotate-180">
-              <span className="text-sm font-medium text-[#333333] text-left">
-                테스트 누적 결과가 그래프로 표시됩니다.
-              </span>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="px-6 pb-6 pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* 스트레스 상태 (S1~S8) */}
-                  <section className="space-y-2 flex flex-col">
-                    <h3 className="text-sm font-semibold text-[#333333]">1. 스트레스 상태</h3>
-                    <div className="rounded-xl bg-[#F5F3FA] p-6 min-w-0">
-                      <div className="w-full overflow-hidden flex items-center justify-center h-[280px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={data}>
+        <section className="rounded-xl border border-[#E8E2FF] bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-[#E8E2FF] px-6 py-4">
+            <h2 className="text-sm font-medium text-[#333333]">
+              테스트 누적 결과가 그래프로 표시됩니다.
+            </h2>
+            {!showRealCharts && (
+              <p className="mt-1 text-xs text-[#8E7CFF]">
+                예시 그래프입니다. 로그인(이메일·Google) 후 내 기록이 반영됩니다.
+              </p>
+            )}
+          </div>
+          <div className="px-6 pb-6 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 스트레스 상태 (S1~S8) */}
+              <section className="space-y-2 flex flex-col">
+                <h3 className="text-sm font-semibold text-[#333333]">1. 스트레스 상태</h3>
+                <div className="rounded-xl bg-[#F5F3FA] p-6 min-w-0">
+                  <div className="w-full overflow-hidden flex items-center justify-center h-[280px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={displayStress}>
                             <PolarGrid stroke="#E8E2FF" />
                             <PolarAngleAxis
                               dataKey="subject"
@@ -565,9 +569,11 @@ export default function AnalysisPage() {
                       </div>
                     </div>
                     <p className="text-center text-xs text-[#666666]">
-                      {hasData
-                        ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
-                        : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
+                      {!showRealCharts
+                        ? '예시 데이터입니다.'
+                        : hasData
+                          ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
+                          : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
                     </p>
                   </section>
 
@@ -577,7 +583,7 @@ export default function AnalysisPage() {
                     <div className="rounded-xl bg-[#F5F3FA] p-6 min-w-0">
                       <div className="w-full overflow-hidden flex items-center justify-center h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={relationData}>
+                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={displayRelation}>
                             <PolarGrid stroke="#E8E2FF" />
                             <PolarAngleAxis
                               dataKey="subject"
@@ -602,9 +608,11 @@ export default function AnalysisPage() {
                       </div>
                     </div>
                     <p className="text-center text-xs text-[#666666]">
-                      {hasRelationData
-                        ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
-                        : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
+                      {!showRealCharts
+                        ? '예시 데이터입니다.'
+                        : hasRelationData
+                          ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
+                          : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
                     </p>
                   </section>
 
@@ -614,7 +622,7 @@ export default function AnalysisPage() {
                     <div className="rounded-xl bg-[#F5F3FA] p-6 min-w-0">
                       <div className="w-full overflow-hidden flex items-center justify-center h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={innerData}>
+                          <RechartsRadarChart cx="50%" cy="50%" outerRadius="65%" data={displayInner}>
                             <PolarGrid stroke="#E8E2FF" />
                             <PolarAngleAxis
                               dataKey="subject"
@@ -639,16 +647,16 @@ export default function AnalysisPage() {
                       </div>
                     </div>
                     <p className="text-center text-xs text-[#666666]">
-                      {hasInnerData
-                        ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
-                        : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
+                      {!showRealCharts
+                        ? '예시 데이터입니다.'
+                        : hasInnerData
+                          ? '히스토리에 저장된 테스트 결과를 기반으로 표시됩니다.'
+                          : '기록이 쌓이면 나의 반응 패턴이 표시됩니다.'}
                     </p>
                   </section>
                 </div>
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        </section>
       </div>
 
       <LoginModal
