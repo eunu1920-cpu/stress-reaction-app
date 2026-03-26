@@ -9,7 +9,7 @@ import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-
 import { saveData, loadRecords, updateRecordMemo } from '@/lib/storage'
 import { useAuth } from '@/lib/auth-context'
 import { Textarea } from '@/components/ui/textarea'
-import { ResultMemoSection } from '@/components/result-memo-section'
+import { PATTERN_LENS_RELATION_HREF, ResultMemoSection } from '@/components/result-memo-section'
 import { ResultMemoDisplay } from '@/components/result-memo-display'
 import { LoginModal } from '@/components/login-modal'
 
@@ -273,14 +273,20 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
                   onChange={(e) => setMemo(e.target.value)}
                   className="min-h-[80px] resize-none border-[#E8E2FF] focus-visible:ring-[#8E7CFF]"
                 />
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={handleSaveMemo}
-                    className="px-6 py-3 bg-[#8E7CFF] text-white rounded-xl text-base font-semibold hover:bg-[#7D6BEE] transition-colors"
+                    className="rounded-xl bg-[#8E7CFF] px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
                   >
                     메모 저장
                   </button>
+                  <Link
+                    href={PATTERN_LENS_RELATION_HREF}
+                    className="inline-flex items-center justify-center rounded-xl border border-[#E8E2FF] bg-[#F5F3FA] px-6 py-3 text-base font-semibold text-[#5a4bb5] transition-colors hover:bg-[#EDE9F7]"
+                  >
+                    패턴돋보기
+                  </Link>
                 </div>
                 {memoSaved && (
                   <p className="mt-4 text-sm text-[#555555] leading-relaxed">

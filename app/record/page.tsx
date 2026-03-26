@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { saveData } from '@/lib/storage'
@@ -25,7 +25,8 @@ type PendingRecordData = {
   mood?: MoodType
 }
 
-const SITUATION_TAGS = [
+/** 흐림: 부담·긴장에 가까운 상황 위주 */
+const SITUATION_TAGS_CLOUDY = [
   '시간압박',
   '일 많음',
   '사람 많음',
@@ -40,7 +41,23 @@ const SITUATION_TAGS = [
   '관계 고민',
 ]
 
-const BODY_REACTION_TAGS = [
+/** 맑음: 여유·긍정적 맥락 위주 */
+const SITUATION_TAGS_CLEAR = [
+  '여유 있는 하루',
+  '좋은 소식',
+  '만남·대화',
+  '일이 잘 풀림',
+  '새로운 시도',
+  '몰입할 일',
+  '취미·휴식',
+  '관계가 따뜻함',
+  '감사한 일',
+  '작은 성취',
+  '안정적인 루틴',
+  '몸과 마음 여유',
+]
+
+const BODY_REACTION_TAGS_CLOUDY = [
   '피로',
   '짜증',
   '긴장',
@@ -55,7 +72,22 @@ const BODY_REACTION_TAGS = [
   '에너지저하',
 ]
 
-const BEHAVIOR_TAGS = [
+const BODY_REACTION_TAGS_CLEAR = [
+  '편안함',
+  '가벼움',
+  '활력',
+  '따뜻함',
+  '잠 잘 잠',
+  '식욕 좋음',
+  '호흡 여유',
+  '몸이 풀림',
+  '집중 잘 됨',
+  '마음이 놓임',
+  '웃음이 남',
+  '몸이 긍정적으로 반응',
+]
+
+const BEHAVIOR_TAGS_CLOUDY = [
   '말 줄임',
   '피함',
   '생각 반복',
@@ -68,6 +100,21 @@ const BEHAVIOR_TAGS = [
   '휴식 찾음',
   '핸드폰 회피',
   '산책',
+]
+
+const BEHAVIOR_TAGS_CLEAR = [
+  '사람과 나눔',
+  '감사 표현',
+  '기록·정리',
+  '산책·움직임',
+  '취미 시간',
+  '칭찬·격려',
+  '일찍 쉼',
+  '계획 실천',
+  '새로 배움',
+  '도움 줌',
+  '스스로에게 친절',
+  '느긋하게 보냄',
 ]
 
 function CheckboxGrid({
@@ -129,6 +176,31 @@ export default function RecordPage() {
   const [questionText, setQuestionText] = useState('')
   const [questionSubmitting, setQuestionSubmitting] = useState(false)
 
+  const situationTagOptions = useMemo(
+    () => (mood === 'clear' ? SITUATION_TAGS_CLEAR : SITUATION_TAGS_CLOUDY),
+    [mood]
+  )
+  const bodyTagOptions = useMemo(
+    () => (mood === 'clear' ? BODY_REACTION_TAGS_CLEAR : BODY_REACTION_TAGS_CLOUDY),
+    [mood]
+  )
+  const behaviorTagOptions = useMemo(
+    () => (mood === 'clear' ? BEHAVIOR_TAGS_CLEAR : BEHAVIOR_TAGS_CLOUDY),
+    [mood]
+  )
+
+  const handleMoodChange = useCallback(
+    (next: MoodType) => {
+      if (!isLoggedIn) return
+      if (next === mood) return
+      setMood(next)
+      setSituationTags([])
+      setBodyReactionTags([])
+      setBehaviorTags([])
+    },
+    [isLoggedIn, mood]
+  )
+
   useEffect(() => {
     let cancelled = false
     hasManualRecordToday(user?.id ?? null).then((exists) => {
@@ -144,15 +216,29 @@ export default function RecordPage() {
       if (!raw) return
       const data = JSON.parse(raw) as PendingRecordData
       if (!data || !Array.isArray(data.situationTags) || !Array.isArray(data.bodyReactionTags) || !Array.isArray(data.behaviorTags)) return
+      const m: MoodType = data.mood === 'clear' ? 'clear' : 'cloudy'
+      const sitPool = m === 'clear' ? SITUATION_TAGS_CLEAR : SITUATION_TAGS_CLOUDY
+      const bodyPool = m === 'clear' ? BODY_REACTION_TAGS_CLEAR : BODY_REACTION_TAGS_CLOUDY
+      const behPool = m === 'clear' ? BEHAVIOR_TAGS_CLEAR : BEHAVIOR_TAGS_CLOUDY
+      const situationTagsSafe = (data.situationTags ?? []).filter((t) => sitPool.includes(t))
+      const bodyTagsSafe = (data.bodyReactionTags ?? []).filter((t) => bodyPool.includes(t))
+      const behaviorTagsSafe = (data.behaviorTags ?? []).filter((t) => behPool.includes(t))
+      const safeData: PendingRecordData = {
+        ...data,
+        situationTags: situationTagsSafe,
+        bodyReactionTags: bodyTagsSafe,
+        behaviorTags: behaviorTagsSafe,
+        mood: m,
+      }
       sessionStorage.removeItem(PENDING_RECORD_KEY)
-      setSituationTags(data.situationTags ?? [])
-      setBodyReactionTags(data.bodyReactionTags ?? [])
-      setBehaviorTags(data.behaviorTags ?? [])
+      setSituationTags(situationTagsSafe)
+      setBodyReactionTags(bodyTagsSafe)
+      setBehaviorTags(behaviorTagsSafe)
       setMemo(data.memo ?? '')
-      setMood(data.mood === 'clear' ? 'clear' : 'cloudy')
+      setMood(m)
       setSaveStatus('loading')
       setError(null)
-      void performSaveWithData(user.id, data, isDemoMode)
+      void performSaveWithData(user.id, safeData, isDemoMode)
     } catch {
       sessionStorage.removeItem(PENDING_RECORD_KEY)
     }
@@ -338,40 +424,45 @@ export default function RecordPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-[#E8E2FF] p-6">
-          <div className="mb-6 flex flex-wrap items-center gap-4">
-            <h1 className="text-xl font-bold text-[#111111]">
-              오늘 반응 기록
-            </h1>
-            <fieldset
-              className="flex items-center gap-3"
-              onClick={() => !isLoggedIn && handleInteractRequireLogin()}
-            >
-              <legend className="sr-only">오늘의 기분</legend>
-              <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
-                <input
-                  type="radio"
-                  name="mood"
-                  value="cloudy"
-                  checked={mood === 'cloudy'}
-                  onChange={() => isLoggedIn && setMood('cloudy')}
-                  disabled={!isLoggedIn}
-                  className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
-                />
-                <span>흐림</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
-                <input
-                  type="radio"
-                  name="mood"
-                  value="clear"
-                  checked={mood === 'clear'}
-                  onChange={() => isLoggedIn && setMood('clear')}
-                  disabled={!isLoggedIn}
-                  className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
-                />
-                <span>맑음</span>
-              </label>
-            </fieldset>
+          <div className="mb-6">
+            <div className="mb-2 flex flex-wrap items-center gap-4">
+              <h1 className="text-xl font-bold text-[#111111]">
+                오늘 반응 기록
+              </h1>
+              <fieldset
+                className="flex items-center gap-3"
+                onClick={() => !isLoggedIn && handleInteractRequireLogin()}
+              >
+                <legend className="sr-only">오늘의 기분</legend>
+                <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
+                  <input
+                    type="radio"
+                    name="mood"
+                    value="cloudy"
+                    checked={mood === 'cloudy'}
+                    onChange={() => handleMoodChange('cloudy')}
+                    disabled={!isLoggedIn}
+                    className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
+                  />
+                  <span>흐림</span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
+                  <input
+                    type="radio"
+                    name="mood"
+                    value="clear"
+                    checked={mood === 'clear'}
+                    onChange={() => handleMoodChange('clear')}
+                    disabled={!isLoggedIn}
+                    className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
+                  />
+                  <span>맑음</span>
+                </label>
+              </fieldset>
+            </div>
+            <p className="text-xs leading-relaxed text-[#888888]">
+              흐림·맑음에 맞는 태그가 달라요. 바꾸면 선택한 태그는 초기화돼요.
+            </p>
           </div>
 
           {alreadyRecordedToday && (
@@ -384,9 +475,13 @@ export default function RecordPage() {
           <div className="mb-6">
             <label className="block text-sm font-semibold text-[#333333] mb-3">
               Situation (최대 4개 선택)
+              <span className="ml-1.5 font-normal text-[#888888]">
+                · {mood === 'clear' ? '맑음' : '흐림'}
+              </span>
             </label>
             <CheckboxGrid
-              tags={SITUATION_TAGS}
+              tags={situationTagOptions}
+              key={`sit-${mood}`}
               selected={situationTags}
               onChange={(value, checked) =>
                 toggleTag(setSituationTags, value, checked, situationTags)
@@ -400,9 +495,13 @@ export default function RecordPage() {
           <div className="mb-6">
             <label className="block text-sm font-semibold text-[#333333] mb-3">
               Body reaction (최대 4개 선택)
+              <span className="ml-1.5 font-normal text-[#888888]">
+                · {mood === 'clear' ? '맑음' : '흐림'}
+              </span>
             </label>
             <CheckboxGrid
-              tags={BODY_REACTION_TAGS}
+              tags={bodyTagOptions}
+              key={`body-${mood}`}
               selected={bodyReactionTags}
               onChange={(value, checked) =>
                 toggleTag(setBodyReactionTags, value, checked, bodyReactionTags)
@@ -416,9 +515,13 @@ export default function RecordPage() {
           <div className="mb-6">
             <label className="block text-sm font-semibold text-[#333333] mb-3">
               Behavior (최대 4개 선택)
+              <span className="ml-1.5 font-normal text-[#888888]">
+                · {mood === 'clear' ? '맑음' : '흐림'}
+              </span>
             </label>
             <CheckboxGrid
-              tags={BEHAVIOR_TAGS}
+              tags={behaviorTagOptions}
+              key={`beh-${mood}`}
               selected={behaviorTags}
               onChange={(value, checked) =>
                 toggleTag(setBehaviorTags, value, checked, behaviorTags)

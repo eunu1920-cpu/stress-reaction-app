@@ -1,10 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { saveData } from "@/lib/storage"
 import { useAuth } from "@/lib/auth-context"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+
+/** 관계 상황 패턴 돋보기 (일반 플로우, 미리보기 모드 아님) */
+export const PATTERN_LENS_RELATION_HREF = "/pattern/relation"
 
 type Props = {
   resultType: string
@@ -50,13 +54,21 @@ export function ResultMemoSection({ resultType, summary }: Props) {
         onChange={(e) => setMemo(e.target.value)}
         className="min-h-[80px] resize-none border-[#E8E2FF] focus-visible:ring-[#8E7CFF]"
       />
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button
           type="button"
           onClick={handleSave}
-          className="bg-[#8E7CFF] hover:bg-[#7D6BEE] text-white font-semibold rounded-xl"
+          className="rounded-xl bg-[#8E7CFF] font-semibold text-white hover:bg-[#7D6BEE]"
         >
           메모 저장
+        </Button>
+        <Button
+          type="button"
+          asChild
+          variant="outline"
+          className="rounded-xl border-[#E8E2FF] bg-[#F5F3FA] font-semibold text-[#5a4bb5] hover:bg-[#EDE9F7]"
+        >
+          <Link href={PATTERN_LENS_RELATION_HREF}>패턴돋보기</Link>
         </Button>
       </div>
       {saved && (
