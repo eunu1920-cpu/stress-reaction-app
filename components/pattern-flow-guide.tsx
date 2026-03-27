@@ -9,7 +9,7 @@ const STEPS: { n: number; title: string; detail?: string }[] = [
   { n: 3, title: '상황 질문에 답해요', detail: '보이는 선택지를 누르면 돼요' },
   {
     n: 4,
-    title: '해석 아래에서 공감 태그·한 줄 (선택)',
+    title: '해석 아래에서 공감 태그·한 줄',
     detail: '넣으면 패턴 분석이 더 정확해져요',
   },
   {

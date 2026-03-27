@@ -79,7 +79,7 @@ export function PatternProgressBanner({
           패턴 분석까지 {progressCount} / {totalCount}
         </p>
         <p className="mt-1 text-center text-xs text-[#888888]">
-          질문에 답할 때마다 1씩 쌓여요
+          패턴 돋보기에서 답할 때마다 1씩 쌓여요
         </p>
         <p className="mt-0.5 text-center text-xs text-[#888888]">
           {totalCount}개 모이면{' '}

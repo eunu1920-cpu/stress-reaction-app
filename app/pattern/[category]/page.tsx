@@ -23,6 +23,12 @@ import { saveData, loadRecords } from '@/lib/storage'
 import { toBlob } from 'html-to-image'
 import { toast } from 'sonner'
 import { PatternFlowGuide, PatternFlowStepHint } from '@/components/pattern-flow-guide'
+import { PatternInsightCollapsible } from '@/components/pattern-insight-collapsible'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { TimedSelectionOptions } from '@/components/timed-selection-options'
 import { playSound } from '@/lib/play-sound'
 import { getRandomTimeoutOption } from '@/lib/pattern-lens/timeout-interpretations'
@@ -82,7 +88,7 @@ function TrialLoginButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+        className="inline-flex items-center justify-center rounded-xl bg-[#8E7CFF] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
       >
         로그인하기
       </button>
@@ -220,8 +226,8 @@ export default function PatternCategoryPage() {
   const [previewResponse, setPreviewResponse] = useState<PatternResponseLike | null>(null)
   const [patternComment, setPatternComment] = useState('')
   const [selectedResonantTags, setSelectedResonantTags] = useState<string[]>([])
-  const [commentSaving, setCommentSaving] = useState(false)
   const [completedRecordsCount, setCompletedRecordsCount] = useState<number | null>(null)
+  const [trialLoginInfoOpen, setTrialLoginInfoOpen] = useState(false)
   const resultCardRef = useRef<HTMLElement | null>(null)
 
   const category = useMemo(
@@ -546,11 +552,15 @@ export default function PatternCategoryPage() {
     setSharing(true)
 
     try {
-      const blob = await toBlob(resultCardRef.current, {
+      const cardEl = resultCardRef.current
+      const w = Math.ceil(cardEl.getBoundingClientRect().width)
+      const blob = await toBlob(cardEl, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
         fontEmbedCSS: '',
+        /** 캡처 시 flex·한글 줄바꿈이 비정상적으로 잘리는 경우 완화 */
+        width: w > 0 ? w : undefined,
       })
 
       if (!blob) throw new Error('blob_generation_failed')
@@ -594,7 +604,7 @@ export default function PatternCategoryPage() {
   if (state.status === 'invalidPreview') {
     return (
       <main className="min-h-screen bg-[#F5F3FA] px-4 py-10">
-          <div className="mx-auto flex w-full max-w-md flex-col gap-6">
+          <div className="mx-auto flex w-full max-w-md flex-col gap-3">
             <div className="rounded-2xl border border-[#E8E2FF] bg-white p-6 text-center shadow-sm">
               <p className="text-sm font-semibold text-[#8E7CFF]">미리보기 모드</p>
               <p className="mt-3 text-sm leading-relaxed text-[#555555]">
@@ -637,7 +647,7 @@ export default function PatternCategoryPage() {
 
   return (
       <main className={`min-h-screen bg-[#F5F3FA] px-4 py-10 ${showResultFooter ? 'pb-28' : ''}`}>
-        <div className="mx-auto flex w-full max-w-md flex-col gap-6">
+        <div className="mx-auto flex w-full max-w-md flex-col gap-3">
           <div className="text-center">
             <p className="text-sm font-medium text-[#8E7CFF]">{CATEGORY_LABELS[category]}</p>
             <h1 className="mt-2 text-2xl font-bold text-[#333333]">오늘의 관찰 질문</h1>
@@ -652,18 +662,27 @@ export default function PatternCategoryPage() {
           )}
 
           {state.status === 'ready' && state.isTrial && state.question && category !== 'relation' && (
-            <section className="rounded-2xl border border-[#DDD4FF] bg-[#F8F5FF] p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
+            <section className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8E7CFF]">
                 비회원 체험
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-[#555555]">
-                기록 없이 둘러보는 중이에요.
-                <br />
-                <span className="text-[#666666]">나중에 로그인하시면, 지금까지의 패턴이 모여 &apos;개인 히스토리&apos;와 누적된 &apos;당신의 패턴보고서&apos;를 보여드릴 수 있어요.</span>
-              </p>
-              <p className="mt-2 text-xs text-[#777777]">
-                {(trialQuestions.findIndex((q) => q.id === state.question?.id) + 1) || 1} / {trialQuestions.length}
-              </p>
+              <Collapsible open={trialLoginInfoOpen} onOpenChange={setTrialLoginInfoOpen}>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-sm leading-snug text-[#555555]">
+                  <span>기록 없이 둘러보는 중이에요.</span>
+                  <CollapsibleTrigger
+                    type="button"
+                    className="shrink-0 text-xs font-medium text-[#8E7CFF] underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#8E7CFF] focus-visible:ring-offset-1"
+                  >
+                    {trialLoginInfoOpen ? '(접기)' : '(펼치기)'}
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-none">
+                  <p className="mt-1.5 text-xs leading-relaxed text-[#666666]">
+                    나중에 로그인하시면, 지금까지의 패턴이 모여 &apos;개인 히스토리&apos;와 누적된
+                    &apos;당신의 패턴보고서&apos;를 보여드릴 수 있어요.
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
             </section>
           )}
 
@@ -761,36 +780,36 @@ export default function PatternCategoryPage() {
           )}
 
           {state.status === 'trialComplete' && (
-            <div className="rounded-2xl border border-[#E8E2FF] bg-white p-6 text-center shadow-sm">
+            <div className="rounded-xl border border-[#E8E2FF] bg-white p-4 text-center shadow-sm">
               <p className="text-sm font-semibold text-[#333333]">
                 이 장면에서의 관찰은 여기까지예요
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-[#555555]">
-                로그인하시면, 지금까지의 패턴이 모여
-                <br />
-                다른 각도로 보여드릴 수 있어요.
+              <p className="mt-1.5 text-xs leading-relaxed text-[#555555]">
+                로그인하시면, 지금까지의 패턴이 모여 다른 각도로 보여드릴 수 있어요.
               </p>
               {completedRecordsCount !== null && completedRecordsCount >= 5 && (
-                <p className="mt-3 text-sm font-medium text-[#8E7CFF]">
+                <p className="mt-2 text-xs font-medium text-[#8E7CFF]">
                   5개가 모였어요. 종합분석에서 패턴을 확인해보세요
                 </p>
               )}
-              <div className="mt-5 flex flex-col gap-3">
+              <div className="mt-3 flex flex-col gap-2">
                 {completedRecordsCount !== null && completedRecordsCount >= 5 && (
                   <Link
                     href="/analysis"
-                    className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
+                    className="inline-flex items-center justify-center rounded-xl bg-[#8E7CFF] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
                   >
                     종합분석 보기
                   </Link>
                 )}
                 <Link
                   href="/history"
-                  className="inline-flex items-center justify-center rounded-2xl border border-[#DDD4FF] bg-white px-5 py-3 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
+                  className="inline-flex items-center justify-center rounded-xl border border-[#DDD4FF] bg-white px-4 py-2.5 text-xs font-semibold text-[#5a4bb5] transition-colors hover:bg-[#F8F5FF]"
                 >
                   내 히스토리 다시보기
                 </Link>
-                <TrialLoginButton />
+                <div className="flex justify-center pt-0.5">
+                  <TrialLoginButton />
+                </div>
               </div>
             </div>
           )}
@@ -864,7 +883,7 @@ export default function PatternCategoryPage() {
               {activeResponse?.display_snapshot && (
                 <section
                   ref={resultCardRef}
-                  className="rounded-2xl border border-[#E8E2FF] bg-white p-6 shadow-sm"
+                  className="result-capture-card rounded-2xl border border-[#E8E2FF] bg-white p-6 shadow-sm break-keep"
                 >
                   <div className="text-center">
                     <p className="text-sm font-medium text-[#8E7CFF]">
@@ -874,7 +893,7 @@ export default function PatternCategoryPage() {
                       {activeResponse.display_snapshot.interpretationTitle}
                     </h2>
                     {interpretationSections?.summary && (
-                      <p className="mt-3 text-sm leading-relaxed text-[#555555]">
+                      <p className="mt-3 break-keep text-sm leading-relaxed text-[#555555]">
                         {interpretationSections.summary}
                       </p>
                     )}
@@ -886,21 +905,17 @@ export default function PatternCategoryPage() {
                         <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
                           해석
                         </p>
-                        <p className="mt-2 text-sm leading-7 text-[#555555]">
+                        <p className="mt-2 break-keep text-sm leading-7 text-[#555555]">
                           {interpretationSections.body}
                         </p>
                       </div>
                     )}
 
                     {interpretationSections?.insight && (
-                      <div className="rounded-2xl border border-[#E8E2FF] bg-white px-4 py-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
-                          통찰
-                        </p>
-                        <p className="mt-2 text-sm leading-7 text-[#555555]">
-                          {interpretationSections.insight}
-                        </p>
-                      </div>
+                      <PatternInsightCollapsible
+                        insight={interpretationSections.insight}
+                        variant="compact"
+                      />
                     )}
 
                     {interpretationSections?.question && (
@@ -908,7 +923,7 @@ export default function PatternCategoryPage() {
                         <p className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
                           관찰 질문
                         </p>
-                        <p className="mt-2 text-sm leading-7 text-[#333333]">
+                        <p className="mt-2 break-keep text-sm leading-7 text-[#333333]">
                           {interpretationSections.question}
                         </p>
                       </div>
@@ -932,7 +947,7 @@ export default function PatternCategoryPage() {
                                     : [...prev, point]
                                 )
                               }
-                              className={`rounded-xl border px-3 py-2 text-sm transition-colors ${
+                              className={`inline-flex max-w-full shrink-0 whitespace-nowrap rounded-xl border px-3 py-2 text-sm transition-colors ${
                                 isSelected
                                   ? 'border-[#8E7CFF] bg-[#F3EEFF] text-[#5a4bb5]'
                                   : 'border-[#E8E2FF] bg-white text-[#666666] hover:border-[#D8CCFF] hover:bg-[#F8F5FF]'
@@ -951,68 +966,26 @@ export default function PatternCategoryPage() {
               {activeResponse && !isPreviewMode && (
                 <section className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
                   <PatternFlowStepHint step={4}>
-                    해석을 보신 뒤, 공감 태그·한 줄을 남기면 패턴이 더 정확해져요 (선택)
+                    해석을 보신 뒤, 공감 태그·한 줄을 남기면 패턴이 더 정확해져요
                   </PatternFlowStepHint>
-                  <p className="mt-3 text-sm font-medium text-[#333333]">한 줄 더 (선택)</p>
+                  <p className="mt-3 text-sm font-medium text-[#333333]">
+                    한 줄 더 (선택이에요)
+                  </p>
                   <p className="mt-0.5 text-xs text-[#888888]">
                     아래 보라색 「다음 질문」을 누르면 함께 저장돼요
                   </p>
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
+                  <div className="mt-2">
+                    <textarea
                       value={patternComment}
                       onChange={(e) => setPatternComment(e.target.value)}
-                      placeholder="또는 직접 적기 (선택)"
-                      maxLength={100}
-                      className="flex-1 rounded-xl border border-[#E8E2FF] px-4 py-2.5 text-sm text-[#333333] placeholder:text-[#999999] focus:border-[#8E7CFF] focus:outline-none"
+                      placeholder="또는 직접 적기"
+                      maxLength={300}
+                      rows={3}
+                      className="w-full resize-none rounded-xl border border-[#E8E2FF] px-4 py-2.5 text-sm text-[#333333] placeholder:text-[#999999] focus:border-[#8E7CFF] focus:outline-none"
                     />
-                    {user?.id ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const comment = patternComment.trim()
-                          if ((!comment && selectedResonantTags.length === 0) || commentSaving)
-                            return
-                          setCommentSaving(true)
-                          try {
-                            const baseContent =
-                              activeResponse?.display_snapshot?.interpretationBody?.trim() ?? ''
-                            const parts: string[] = []
-                            if (selectedResonantTags.length > 0)
-                              parts.push(`공감: ${selectedResonantTags.join(', ')}`)
-                            if (comment) parts.push(`댓글: ${comment}`)
-                            const append = parts.join('\n\n')
-                            const newContent = baseContent
-                              ? `${baseContent}\n\n${append}`
-                              : append
-                            const records = await loadRecords(user.id)
-                            const match = records.find(
-                              (r) =>
-                                r.sourceKind === 'pattern_lens' &&
-                                r.questionId === state.question?.id
-                            )
-                            if (match) {
-                              const { updateRecordContent } = await import(
-                                '@/lib/history-storage'
-                              )
-                              await updateRecordContent(match.id, newContent)
-                              setPatternComment('')
-                              setSelectedResonantTags([])
-                              toast.success('등록되었어요.')
-                            }
-                          } finally {
-                            setCommentSaving(false)
-                          }
-                        }}
-                        disabled={
-                          (selectedResonantTags.length === 0 && !patternComment.trim()) ||
-                          commentSaving
-                        }
-                        className="shrink-0 rounded-xl bg-[#8E7CFF] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {commentSaving ? '등록 중...' : '등록'}
-                      </button>
-                    ) : null}
+                    <p className="mt-1 text-right text-xs tabular-nums text-[#999999]">
+                      {patternComment.length} / 300
+                    </p>
                   </div>
                 </section>
               )}

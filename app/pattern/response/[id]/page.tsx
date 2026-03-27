@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { RequireAuth } from '@/components/require-auth'
+import { PatternInsightCollapsible } from '@/components/pattern-insight-collapsible'
 
 type Snapshot = {
   scenario?: string
@@ -45,9 +46,33 @@ const CATEGORY_LABELS: Record<string, string> = {
   self: '개인 상황',
 }
 
+/** 저장 시 content에 붙는 공감/댓글 줄은 해석 본문과 분리 */
+function splitInterpretationAndUserNotes(text: string): {
+  interpretation: string
+  userNotes: string
+} {
+  const lines = text.split('\n')
+  const idx = lines.findIndex((line) => {
+    const t = line.trim()
+    return t.startsWith('공감:') || t.startsWith('댓글:')
+  })
+  if (idx < 0) {
+    return { interpretation: text.trim(), userNotes: '' }
+  }
+  return {
+    interpretation: lines.slice(0, idx).join('\n').trim(),
+    userNotes: lines.slice(idx).join('\n').trim(),
+  }
+}
+
 function getInterpretationSections(snapshot?: Snapshot | null, fallbackContent?: string | null) {
   const summary = snapshot?.interpretationSummary?.trim() ?? ''
-  const rawBody = snapshot?.interpretationBody?.trim() || fallbackContent?.trim() || ''
+  const snapRaw = snapshot?.interpretationBody?.trim() ?? ''
+  const contentRaw = fallbackContent?.trim() ?? ''
+  const snapSplit = splitInterpretationAndUserNotes(snapRaw)
+  const contentSplit = splitInterpretationAndUserNotes(contentRaw)
+  const userNotes = contentSplit.userNotes || snapSplit.userNotes
+  const rawBody = snapRaw ? snapSplit.interpretation : contentSplit.interpretation
   const explicitInsight = snapshot?.interpretationInsight?.trim() ?? ''
   const explicitQuestion = snapshot?.reflectionQuestion?.trim() ?? ''
   const normalizedBody = rawBody && rawBody !== summary ? rawBody : ''
@@ -58,6 +83,7 @@ function getInterpretationSections(snapshot?: Snapshot | null, fallbackContent?:
       body: normalizedBody,
       insight: explicitInsight,
       question: explicitQuestion,
+      userNotes,
     }
   }
 
@@ -95,6 +121,7 @@ function getInterpretationSections(snapshot?: Snapshot | null, fallbackContent?:
       body,
       insight,
       question,
+      userNotes,
     }
   }
 
@@ -103,6 +130,7 @@ function getInterpretationSections(snapshot?: Snapshot | null, fallbackContent?:
     body: normalizedBody,
     insight: '',
     question: '',
+    userNotes,
   }
 }
 
@@ -242,14 +270,10 @@ export default function PatternResponseDetailPage() {
                 )}
 
                 {interpretationSections.insight && (
-                  <section className="rounded-2xl border border-[#E8E2FF] bg-white p-5">
-                    <h2 className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
-                      통찰
-                    </h2>
-                    <p className="mt-2 text-sm leading-relaxed text-[#333333]">
-                      {interpretationSections.insight}
-                    </p>
-                  </section>
+                  <PatternInsightCollapsible
+                    insight={interpretationSections.insight}
+                    variant="comfortable"
+                  />
                 )}
 
                 {interpretationSections.question && (
@@ -263,6 +287,17 @@ export default function PatternResponseDetailPage() {
                   </section>
                 )}
               </div>
+
+              {interpretationSections.userNotes ? (
+                <section className="mb-6 rounded-2xl border border-[#E8E2FF] bg-white p-5">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-[#8E7CFF]">
+                    나의 한 줄·공감
+                  </h2>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#333333]">
+                    {interpretationSections.userNotes}
+                  </p>
+                </section>
+              ) : null}
 
               {(record.source_snapshot?.interpretationPoints?.length ?? 0) > 0 && (
                 <section>

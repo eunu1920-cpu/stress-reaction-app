@@ -170,6 +170,14 @@ function getDaysInMonth(year: number, month: number) {
   return days
 }
 
+/** 히스토리 카드: 저장문에 이미 `댓글:`이 있으면 접두어를 한 번만 씀 */
+function formatMemoLineForHistoryCard(memo: string): string {
+  const t = memo.trim()
+  if (!t) return ''
+  if (/^댓글\s*:/u.test(t)) return t
+  return `댓글: ${t}`
+}
+
 function RecordCard({
   record,
   onClick,
@@ -184,6 +192,8 @@ function RecordCard({
   const reactionLabel = getReactionLabel(record)
   const isManual = isManualRecord(record)
   const icon = isManual ? '✍' : '🧪'
+  const memoTrimmed = record.memo?.trim() ?? ''
+  const memoDisplay = memoTrimmed ? formatMemoLineForHistoryCard(memoTrimmed) : ''
 
   return (
     <Card
@@ -201,7 +211,7 @@ function RecordCard({
             }
       }
       className={cn(
-        'transition p-4 gap-0 rounded-xl border border-[#E8E2FF] h-[140px] flex flex-col min-h-[140px] overflow-hidden',
+        'transition flex h-auto min-h-[176px] flex-col gap-0 rounded-xl border border-[#E8E2FF] p-4',
         isSample ? 'cursor-default opacity-90' : 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md'
       )}
     >
@@ -227,14 +237,16 @@ function RecordCard({
       <p className="text-xs text-[#777777] line-clamp-1 shrink-0">
         {reactionLabel || ''}
       </p>
-      <div className="pt-2 mt-auto border-t border-border/50 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <p
-          className="text-xs text-gray-600 leading-relaxed min-h-0 overflow-hidden text-ellipsis line-clamp-2 break-words"
-          title={record.memo?.trim() || undefined}
-        >
-          {record.memo?.trim() ?? ''}
-        </p>
-      </div>
+      {memoTrimmed ? (
+        <div className="mt-auto flex flex-col border-t border-border/50 pt-2">
+          <p
+            className="line-clamp-2 min-h-[2.75rem] break-words text-xs leading-relaxed text-gray-600"
+            title={memoTrimmed}
+          >
+            {memoDisplay}
+          </p>
+        </div>
+      ) : null}
     </Card>
   )
 }

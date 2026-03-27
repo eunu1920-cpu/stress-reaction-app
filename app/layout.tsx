@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     siteName: "MyView",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "지금 내 상태, 빠르게 확인해보기",
+    description: "요즘 어디에 더 신경 쓰이고 있나요?",
+  },
 };
 
 export default function RootLayout({

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import {
   DropdownMenu,
@@ -15,7 +14,7 @@ import { LoginModal } from '@/components/login-modal'
 
 const navItems = [
   { href: '/', label: '홈', shortLabel: '홈' },
-  { href: '/observe', label: '관찰', shortLabel: '관찰' },
+  { href: '/observe', label: '질문', shortLabel: '질문' },
   { href: '/history', label: '히스토리', shortLabel: '기록' },
   { href: '/analysis', label: '종합분석', shortLabel: '분석' },
 ] as const
@@ -32,8 +31,7 @@ export function AppNav() {
   const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    logout()
+    await logout()
     router.push('/')
   }
 

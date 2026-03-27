@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   Dialog,
@@ -8,6 +9,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useAuth } from '@/lib/auth-context'
+import { getOrCreatePatternAnonymousId } from '@/lib/pattern-anonymous-id'
+import { supabase } from '@/lib/supabase'
+
+function recordLoginInterestClick(
+  userId: string | undefined,
+  buttonType: 'login_google' | 'login_email',
+) {
+  const anonymousId = userId ? null : getOrCreatePatternAnonymousId()
+  void supabase
+    .from('pattern_interest_clicks')
+    .insert({
+      user_id: userId ?? null,
+      anonymous_id: anonymousId,
+      button_type: buttonType,
+    })
+    .then(({ error }) => {
+      if (error) {
+        console.error(
+          '[pattern_interest_clicks] login click insert failed:',
+          error.message,
+        )
+      }
+    })
+}
 
 type LoginModalProps = {
   open: boolean
@@ -22,6 +48,7 @@ export function LoginModal({
   onLogin,
   variant = 'save',
 }: LoginModalProps) {
+  const { user } = useAuth()
   const [email, setEmail] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -29,6 +56,7 @@ export function LoginModal({
   const isRecordVariant = variant === 'record'
 
   const handleGoogleLogin = async () => {
+    recordLoginInterestClick(user?.id, 'login_google')
     setEmailError(null)
     const result = await onLogin?.('google')
     if (result && 'error' in result) {
@@ -39,6 +67,7 @@ export function LoginModal({
   }
 
   const handleEmailLogin = async () => {
+    recordLoginInterestClick(user?.id, 'login_email')
     const trimmed = email.trim()
     if (!trimmed) {
       setEmailError('이메일을 입력해주세요.')
@@ -67,10 +96,20 @@ export function LoginModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="shrink-0">
-          <DialogTitle className="text-lg font-semibold text-[#333333]">
-            {isSaveVariant ? '기록 저장' : '로그인이 필요합니다'}
-          </DialogTitle>
+        <DialogHeader className="shrink-0 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <Image
+              src="/icon-in-app.svg"
+              alt=""
+              width={48}
+              height={48}
+              className="h-12 w-12"
+              priority
+            />
+            <DialogTitle className="text-lg font-semibold text-[#333333]">
+              {isSaveVariant ? '기록 저장' : '로그인이 필요합니다'}
+            </DialogTitle>
+          </div>
         </DialogHeader>
         <div className="space-y-4 pt-2 min-h-0 overflow-y-auto flex-1">
           <p className="text-sm text-[#555555] leading-relaxed whitespace-pre-line">
@@ -78,7 +117,7 @@ export function LoginModal({
               ? "무료로그인하면 더 많은 '상태카드'가 있어요."
               : isRecordVariant
                 ? '로그인하면 기록이 저장되고, 7개의 기록이 쌓이면 내 반응 패턴이 보이기 시작해요.'
-                : '이 기능을 사용하려면 로그인이 필요합니다.'}
+                : '오늘의 패턴을\n지금부터 더 깊이 이어볼 수 있어요.'}
           </p>
 
           {emailSent ? (

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { PatternFlowGuide, PatternFlowStepHint } from '@/components/pattern-flow-guide'
 import { useAuth } from '@/lib/auth-context'
+import { getOrCreatePatternAnonymousId } from '@/lib/pattern-anonymous-id'
 import { supabase } from '@/lib/supabase'
 
 const PATTERN_CATEGORIES = [
@@ -11,28 +12,11 @@ const PATTERN_CATEGORIES = [
   { id: 'self', label: '개인 상황' },
 ] as const
 
-const PATTERN_ANONYMOUS_KEY = 'myview-pattern-anonymous-id'
-
-function getOrCreateAnonymousId(): string | null {
-  if (typeof window === 'undefined') return null
-
-  const stored = window.localStorage.getItem(PATTERN_ANONYMOUS_KEY)
-  if (stored) return stored
-
-  const nextId =
-    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`
-
-  window.localStorage.setItem(PATTERN_ANONYMOUS_KEY, nextId)
-  return nextId
-}
-
 export default function PatternPage() {
   const { user } = useAuth()
 
   const handleCategoryClick = async (item: (typeof PATTERN_CATEGORIES)[number]) => {
-    const anonymousId = user?.id ? null : getOrCreateAnonymousId()
+    const anonymousId = user?.id ? null : getOrCreatePatternAnonymousId()
 
     const { error } = await supabase.from('pattern_interest_clicks').insert({
       user_id: user?.id ?? null,
@@ -47,7 +31,7 @@ export default function PatternPage() {
 
   return (
     <main className="min-h-screen bg-[#F5F3FA] px-4 py-10">
-      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6">
+      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3">
         <PatternFlowGuide activeStep={2} defaultOpen={false} className="w-full" />
 
         <div className="w-full text-center">

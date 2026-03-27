@@ -1,7 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MyView">
-  <rect width="512" height="512" fill="#F5F3FA" />
+  <defs>
+    <radialGradient id="mv-disk" cx="38%" cy="32%" r="78%">
+      <stop offset="0%" stop-color="#3d3a4a" />
+      <stop offset="55%" stop-color="#222028" />
+      <stop offset="100%" stop-color="#0e0d12" />
+    </radialGradient>
+    <linearGradient id="mv-m" x1="256" y1="108" x2="256" y2="404" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#faf9ff" />
+      <stop offset="100%" stop-color="#a89bff" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#121014" />
+  <circle
+    cx="256"
+    cy="256"
+    r="218"
+    fill="url(#mv-disk)"
+    stroke="#8E7CFF"
+    stroke-opacity="0.42"
+    stroke-width="5"
+  />
   <path
-    fill="#8E7CFF"
+    fill="url(#mv-m)"
     d="M 88 412 L 88 100 L 162 100 L 256 218 L 350 100 L 424 100 L 424 412 L 352 412 L 256 304 L 160 412 Z"
   />
 </svg>

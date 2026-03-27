@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
+import { setExplicitLogout } from '@/lib/auth-explicit-logout'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
@@ -25,7 +26,7 @@ type AuthContextValue = {
   user: User | null
   isLoggedIn: boolean
   login: (email?: string, options?: LoginOptions) => Promise<LoginResult>
-  logout: () => void
+  logout: () => Promise<void>
   isDemoMode: boolean
 }
 
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        setExplicitLogout(false)
         setUser(session.user)
         setIsDemoMode(false)
       }
@@ -70,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        setExplicitLogout(false)
         setUser(session.user)
         setIsDemoMode(false)
       } else {
@@ -82,6 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (email?: string, options?: LoginOptions): Promise<LoginResult> => {
+    setExplicitLogout(false)
+
     if (email === 'google') {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -136,11 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.user ? { user: data.user, isDemo: false } : null
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    setExplicitLogout(true)
     if (typeof window !== 'undefined') {
       localStorage.removeItem(DEMO_USER_KEY)
     }
-    supabase.auth.signOut()
+    await supabase.auth.signOut()
     setUser(null)
     setIsDemoMode(false)
   }, [])
@@ -167,7 +173,7 @@ export function useAuth() {
       user: null,
       isLoggedIn: false,
       login: async (_email?: string, _options?: LoginOptions) => null as LoginResult,
-      logout: () => {},
+      logout: async () => {},
       isDemoMode: false,
     }
   }
