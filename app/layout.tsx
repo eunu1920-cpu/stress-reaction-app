@@ -10,18 +10,16 @@ export const metadata: Metadata = {
   description: "요즘 어디에 더 신경 쓰이고 있나요?",
   metadataBase: new URL("https://stress-reaction-app-fn4y.vercel.app"),
   openGraph: {
-    title: "결정이 막히는 순간 · 지금 할까, 말까",
-    description:
-      "결정이 막히는 순간. 지금 할까, 말까. 당신은 보통 어디로 움직이나요?",
+    title: "지금 내 상태, 빠르게 확인해보기",
+    description: "요즘 어디에 더 신경 쓰이고 있나요?",
     url: "https://stress-reaction-app-fn4y.vercel.app",
     siteName: "MyView",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "결정이 막히는 순간 · 지금 할까, 말까",
-    description:
-      "결정이 막히는 순간. 지금 할까, 말까. 당신은 보통 어디로 움직이나요?",
+    title: "지금 내 상태, 빠르게 확인해보기",
+    description: "요즘 어디에 더 신경 쓰이고 있나요?",
   },
 };
 
