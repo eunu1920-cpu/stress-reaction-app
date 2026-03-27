@@ -25,8 +25,8 @@ function WhyItWorksColumn({
   stanzas: string[][]
 }) {
   return (
-    <div className="flex min-w-0 flex-col">
-      <p className="mb-3 text-center text-[11px] font-semibold tracking-wide text-[#8E7CFF]">{label}</p>
+    <div className="flex min-w-0 flex-col text-center sm:text-left">
+      <p className="mb-3 text-center text-sm font-semibold tracking-wide text-[#8E7CFF]">{label}</p>
       <div className="space-y-4">
         {stanzas.map((lines, i) => (
           <div key={i} className="space-y-1.5">
@@ -83,22 +83,22 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               key={pathname}
               className="w-full max-w-2xl open:[&>summary>span:last-child]:rotate-180"
             >
-              <summary className="mx-auto flex w-fit cursor-pointer list-none items-center gap-1 text-xs text-[#888888] underline-offset-2 transition-colors hover:text-[#5a4bb5] hover:underline [&::-webkit-details-marker]:hidden">
+              <summary className="mx-auto flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium text-[#555555] underline-offset-2 transition-colors hover:text-[#5a4bb5] hover:underline [&::-webkit-details-marker]:hidden">
                 왜 이렇게 작동할까
-                <span className="text-[10px] text-[#AAAAAA] transition-transform" aria-hidden>
+                <span className="text-[10px] text-[#888888] transition-transform" aria-hidden>
                   ▼
                 </span>
               </summary>
               <div
-                className="mt-3 border-t border-[#E8E2FF] pt-4 text-left text-[11px] leading-relaxed text-[#666666]"
+                className="mt-3 border-t border-[#E8E2FF] pt-4 text-center text-sm leading-relaxed text-[#333333] antialiased sm:text-left"
                 role="region"
                 aria-label="왜 이렇게 작동할까"
               >
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 sm:divide-x sm:divide-[#E8E2FF]">
-                  <div className="sm:pr-8">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                  <div className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
                     <WhyItWorksColumn label="[MyView]" stanzas={WHY_MYVIEW_STANZAS} />
                   </div>
-                  <div className="sm:pl-8">
+                  <div className="rounded-2xl border border-[#E8E2FF] bg-white p-4 shadow-sm">
                     <WhyItWorksColumn label="[MyPick]" stanzas={WHY_MYPICK_STANZAS} />
                   </div>
                 </div>

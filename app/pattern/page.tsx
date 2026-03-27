@@ -49,17 +49,12 @@ export default function PatternPage() {
             <p className="text-sm font-semibold text-[#333333]">
               오늘의 관찰 질문
             </p>
-            <p className="text-sm text-[#666666]">
-              1질문 · 1선택 · 1패턴 해석
-            </p>
             {user ? (
               <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
                 카테고리를 선택하면 랜덤 질문이 나와요. 여러 번 질문할 수 있어요.
               </p>
             ) : (
               <p className="pt-2 text-sm leading-relaxed text-[#6E6E6E]">
-                먼저 둘러보실 수 있어요.
-                <br />
                 <span className="font-medium text-[#8E7CFF]">모든 질문</span>을 기록 없이 둘러볼 수 있어요.
               </p>
             )}
