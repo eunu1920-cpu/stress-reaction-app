@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import Link from 'next/link'
 import {
   Radar,
   RadarChart as RechartsRadarChart,
@@ -510,13 +511,21 @@ export default function AnalysisPage() {
                       <p className="text-sm text-[#555555]">
                         이 분석은 내일부터 보이지 않아요. 지속 사용하려면 무료 가입해주세요.
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setLoginModalOpen(true)}
-                        className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE]"
-                      >
-                        무료 회원가입
-                      </button>
+                      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center sm:gap-3">
+                        <Link
+                          href="/pattern"
+                          className="inline-flex items-center justify-center rounded-2xl border-2 border-[#DDD4FF] bg-white px-5 py-2.5 text-sm font-semibold text-[#5a4bb5] transition-colors hover:border-[#CFC2FF] hover:bg-[#FAF8FF] active:scale-[0.99]"
+                        >
+                          조금 더 체험하기
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setLoginModalOpen(true)}
+                          className="inline-flex items-center justify-center rounded-2xl bg-[#8E7CFF] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7D6BEE] active:scale-[0.99]"
+                        >
+                          무료 회원가입
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

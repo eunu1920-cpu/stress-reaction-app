@@ -15,6 +15,9 @@ import { ANALYSIS_BATCH_SIZE } from '@/lib/analysis-progress'
 import { fetchLatestAnalysis } from '@/lib/analysis-storage'
 import { getLocalAnalysis, loadRecords } from '@/lib/storage'
 
+/** 모달을 읽을 수 있게 한 뒤 자동 이동 (너무 짧으면 스크린리더·취소 여유가 부족해짐) */
+const AUTO_NAVIGATE_MS = 3000
+
 function modalStorageKey(userKey: string, threshold: number): string {
   return `myview_analysis_ready_modal_${userKey}_${threshold}`
 }
@@ -66,6 +69,22 @@ export function AnalysisReadyModal() {
     }
   }, [pathname])
 
+  /** 모달이 한 번 그려진 뒤에만 타이머 시작 — 첫 페인트 전에 replace 되어 ‘창이 안 뜬 것 같음’ 완화 */
+  useEffect(() => {
+    if (!open) return
+    let timeoutId: ReturnType<typeof window.setTimeout> | undefined
+    const rafId = requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
+        setOpen(false)
+        router.replace('/analysis')
+      }, AUTO_NAVIGATE_MS)
+    })
+    return () => {
+      cancelAnimationFrame(rafId)
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
+  }, [open, router])
+
   const goToAnalysis = () => {
     setOpen(false)
     router.push('/analysis')
@@ -84,6 +103,9 @@ export function AnalysisReadyModal() {
           <DialogDescription className="text-center text-sm leading-relaxed text-[#555555]">
             종합분석에서 AI가 지금까지의 패턴을 정리해 드려요. 지금 보러 갈까요?
           </DialogDescription>
+          <p className="mt-3 text-center text-xs font-medium text-[#8E7CFF]">
+            잠시 후 종합분석으로 이동해요
+          </p>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col">
           <button
