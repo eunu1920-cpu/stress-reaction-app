@@ -1,7 +1,22 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { toBlob } from 'html-to-image'
+import { toast } from 'sonner'
+import { MyPickShareCardCanvas } from '@/components/mypick-share-card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  getMyPickShareCard,
+  SHARE_CARD_HEIGHT,
+  SHARE_CARD_WIDTH,
+} from '@/lib/mypick/share-cards'
 import { getRandomMyPickQuestion } from '@/lib/mypick/registry'
 import type { MyPickChoice, MyPickQuestion } from '@/lib/mypick/types'
 import { getOrCreatePatternAnonymousId } from '@/lib/pattern-anonymous-id'
@@ -16,6 +31,10 @@ export default function MyPickPage() {
   const [pctA, setPctA] = useState<number | null>(null)
   const [pctB, setPctB] = useState<number | null>(null)
   const [statsLoaded, setStatsLoaded] = useState(false)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [sharePreviewUrl, setSharePreviewUrl] = useState<string | null>(null)
+  const [shareBusy, setShareBusy] = useState(false)
+  const shareCardRef = useRef<HTMLDivElement>(null)
 
   const loadRandom = useCallback((excludeId?: string) => {
     setQuestion(getRandomMyPickQuestion(excludeId))
@@ -24,11 +43,28 @@ export default function MyPickPage() {
     setPctA(null)
     setPctB(null)
     setStatsLoaded(false)
+    setShareModalOpen(false)
+    setShareBusy(false)
+    setSharePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
   }, [])
 
   useEffect(() => {
     loadRandom()
   }, [loadRandom])
+
+  const sharePreviewUrlRef = useRef<string | null>(null)
+  sharePreviewUrlRef.current = sharePreviewUrl
+
+  useEffect(() => {
+    return () => {
+      if (sharePreviewUrlRef.current) {
+        URL.revokeObjectURL(sharePreviewUrlRef.current)
+      }
+    }
+  }, [])
 
   const handleChoice = async (choice: MyPickChoice) => {
     if (!question || phase !== 'pick') return
@@ -78,6 +114,63 @@ export default function MyPickPage() {
     }
   }
 
+  const handleShareCard = async () => {
+    if (!question || !selected || shareBusy) return
+    if (!getMyPickShareCard(question.id, selected)) {
+      toast.error('카드 정보를 찾지 못했어요.')
+      return
+    }
+    const el = shareCardRef.current
+    if (!el) {
+      toast.error('카드를 불러오지 못했어요.')
+      return
+    }
+
+    setShareBusy(true)
+    try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+
+      const blob = await toBlob(el, {
+        cacheBust: true,
+        pixelRatio: 1,
+        width: SHARE_CARD_WIDTH,
+        height: SHARE_CARD_HEIGHT,
+        backgroundColor: '#ffffff',
+        fontEmbedCSS: '',
+      })
+
+      if (!blob) {
+        throw new Error('blob_generation_failed')
+      }
+
+      if (sharePreviewUrl) {
+        URL.revokeObjectURL(sharePreviewUrl)
+      }
+      const url = URL.createObjectURL(blob)
+      setSharePreviewUrl(url)
+
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `myview-mypick-${question.id}-${selected}.png`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      setShareModalOpen(true)
+      toast.success('카드 이미지를 저장했어요.')
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        return
+      }
+      console.error('[mypick-share]', e)
+      toast.error('카드 이미지를 만들지 못했어요.')
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
   if (!question) {
     return (
       <main className="min-h-[calc(100dvh-3.5rem)] bg-[#F5F3FA] px-4 py-8">
@@ -85,6 +178,11 @@ export default function MyPickPage() {
       </main>
     )
   }
+
+  const shareCardContent =
+    phase === 'result' && selected
+      ? getMyPickShareCard(question.id, selected)
+      : null
 
   const blurb =
     selected === 'a'
@@ -141,6 +239,17 @@ export default function MyPickPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-[#333333]">해석</p>
               <p className="mt-2 text-sm font-semibold leading-snug text-[#111111]">{blurb}</p>
             </div>
+
+            {shareCardContent && (
+              <button
+                type="button"
+                onClick={handleShareCard}
+                disabled={shareBusy}
+                className="w-full rounded-2xl border-2 border-[#8E7CFF] bg-white px-5 py-3.5 text-sm font-semibold text-[#5a4bb5] transition-colors hover:bg-[#FAF8FF] disabled:opacity-60"
+              >
+                {shareBusy ? '이미지 만드는 중…' : "👉 오늘의 '나' 카드 가져가기"}
+              </button>
+            )}
 
             <div className="rounded-2xl border border-[#E8E2FF] bg-white px-5 py-5 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wide text-[#333333]">
@@ -207,6 +316,48 @@ export default function MyPickPage() {
           </div>
         )}
       </div>
+
+      {shareCardContent && (
+        <div
+          className="pointer-events-none fixed top-0 left-[-9999px] z-[-1]"
+          aria-hidden
+        >
+          <MyPickShareCardCanvas ref={shareCardRef} {...shareCardContent} />
+        </div>
+      )}
+
+      <Dialog
+        open={shareModalOpen}
+        onOpenChange={(open) => {
+          setShareModalOpen(open)
+          if (!open) {
+            setSharePreviewUrl((prev) => {
+              if (prev) URL.revokeObjectURL(prev)
+              return null
+            })
+          }
+        }}
+      >
+        <DialogContent className="max-w-md sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>오늘의 나 카드</DialogTitle>
+            <DialogDescription>
+              저장한 이미지와 동일해요. 인스타·프로필 등에 올려 보세요.
+            </DialogDescription>
+          </DialogHeader>
+          {sharePreviewUrl && (
+            // blob URL 미리보기 — next/image는 blob 스키마와 조합 시 제한이 있어 img 사용
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={sharePreviewUrl}
+              alt="오늘의 나 카드"
+              width={SHARE_CARD_WIDTH}
+              height={SHARE_CARD_HEIGHT}
+              className="mx-auto h-auto max-h-[65vh] w-auto max-w-full rounded-lg border border-[#E8E2FF] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
