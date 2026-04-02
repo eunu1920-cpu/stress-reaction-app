@@ -39,7 +39,35 @@ export default function ObservePage() {
         {isGuest ? (
           <>
             <PatternFlowGuide activeStep={1} defaultOpen />
-            {/* 비회원: 패턴 돋보기만 강조 */}
+            {/* 비회원: 스트레스 테스트·기록·패턴 모두 이용 가능 */}
+            <section className="rounded-2xl border border-[#E8E2FF] bg-white px-6 py-7 text-center shadow-sm">
+              <h2 className="text-lg font-semibold text-[#333333]">
+                스트레스 반응 테스트
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#555555]">
+                간단한 질문으로 스트레스 반응 패턴을 확인합니다. 로그인 없이 진행할 수 있어요.
+              </p>
+              <Link
+                href="/stress"
+                className="mt-4 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white shadow-md transition-all hover:bg-[#7D6BEE] active:scale-[0.98]"
+              >
+                테스트 시작
+              </Link>
+            </section>
+
+            <section className="rounded-2xl border border-[#E8E2FF] bg-white px-6 py-7 text-center shadow-sm">
+              <h2 className="text-lg font-semibold text-[#333333]">오늘 반응 기록</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#555555]">
+                태그로 오늘의 반응을 남기면 패턴 분석에 쓰입니다. 로그인 없이 저장할 수 있어요.
+              </p>
+              <Link
+                href="/record"
+                className="mt-5 inline-flex w-full max-w-sm items-center justify-center rounded-2xl border border-[#DCCFFF] bg-[#F0EBFF] px-8 py-4 text-base font-semibold text-[#5a4bb5] transition-colors hover:border-[#CBB8FF] hover:bg-[#E8E2FF]"
+              >
+                반응 바로 기록하기
+              </Link>
+            </section>
+
             <section className="rounded-2xl border border-[#E8E2FF] bg-white px-6 py-8 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-[#333333]">
                 패턴 돋보기 <span aria-hidden="true">🔎</span>
@@ -48,11 +76,11 @@ export default function ObservePage() {
                 질문을 통해 반응 패턴을 살펴봅니다.
               </p>
               <p className="mt-3 text-xs font-medium text-[#8E7CFF]">
-                ① 아래 보라색 버튼을 눌러 시작해요
+                관심 카테고리를 눌러 시작해요
               </p>
               <Link
                 href="/pattern"
-                className="mt-4 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-[#8E7CFF] px-8 py-4 text-base font-semibold text-white shadow-md transition-all hover:bg-[#7D6BEE] active:scale-[0.98]"
+                className="mt-4 inline-flex w-full max-w-sm items-center justify-center rounded-2xl border-2 border-[#DCCFFF] bg-white px-8 py-4 text-base font-semibold text-[#5a4bb5] shadow-sm transition-all hover:border-[#CBB8FF] hover:bg-[#F8F5FF] active:scale-[0.98]"
               >
                 패턴 체험 시작
               </Link>

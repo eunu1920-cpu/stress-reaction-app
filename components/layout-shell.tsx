@@ -44,9 +44,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   const isLanding =
-    pathname === '/promo' ||
-    pathname === '/stress' ||
-    pathname.startsWith('/result/stress')
+    pathname === '/promo' || pathname.startsWith('/result/stress')
   const showNav = !isLanding
 
   const showBanner = showNav && pathname !== '/'

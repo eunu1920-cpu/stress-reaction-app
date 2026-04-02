@@ -1,16 +1,21 @@
 'use client'
 
 import Link from 'next/link'
+import { HomePromoCarousel } from '@/components/home-promo-carousel'
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-[#F5F3FA] px-4 pb-6">
+    <main className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-[#FAFAFA] px-4 pb-6">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-6">
         <h1 className="text-center text-2xl font-bold leading-snug tracking-tight text-[#333333] sm:text-[1.65rem]">
           <span className="block whitespace-pre-line">
             {`결정의 순간들\n급할 땐 지금 결정하고\n천천히 보면 패턴이 보인다.`}
           </span>
         </h1>
+
+        <div className="mt-8 w-full">
+          <HomePromoCarousel />
+        </div>
 
         <div className="mt-10 flex w-full flex-col gap-2">
           <Link

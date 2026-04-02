@@ -191,14 +191,13 @@ export default function RecordPage() {
 
   const handleMoodChange = useCallback(
     (next: MoodType) => {
-      if (!isLoggedIn) return
       if (next === mood) return
       setMood(next)
       setSituationTags([])
       setBodyReactionTags([])
       setBehaviorTags([])
     },
-    [isLoggedIn, mood]
+    [mood]
   )
 
   useEffect(() => {
@@ -332,7 +331,7 @@ export default function RecordPage() {
 
     setSaveStatus('loading')
     setError(null)
-    await performSave(isLoggedIn && user ? user.id : null, isDemoMode)
+    await performSave(user?.id ?? null, isDemoMode)
   }
 
   const handleLoginSuccess = async (email?: string) => {
@@ -429,10 +428,7 @@ export default function RecordPage() {
               <h1 className="text-xl font-bold text-[#111111]">
                 오늘 반응 기록
               </h1>
-              <fieldset
-                className="flex items-center gap-3"
-                onClick={() => !isLoggedIn && handleInteractRequireLogin()}
-              >
+              <fieldset className="flex items-center gap-3">
                 <legend className="sr-only">오늘의 기분</legend>
                 <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[#555555]">
                   <input
@@ -441,7 +437,6 @@ export default function RecordPage() {
                     value="cloudy"
                     checked={mood === 'cloudy'}
                     onChange={() => handleMoodChange('cloudy')}
-                    disabled={!isLoggedIn}
                     className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
                   />
                   <span>흐림</span>
@@ -453,7 +448,6 @@ export default function RecordPage() {
                     value="clear"
                     checked={mood === 'clear'}
                     onChange={() => handleMoodChange('clear')}
-                    disabled={!isLoggedIn}
                     className="size-3.5 border-[#E8E2FF] text-[#8E7CFF] focus:ring-[#8E7CFF]"
                   />
                   <span>맑음</span>
@@ -486,8 +480,6 @@ export default function RecordPage() {
               onChange={(value, checked) =>
                 toggleTag(setSituationTags, value, checked, situationTags)
               }
-              onInteract={handleInteractRequireLogin}
-              disabled={!isLoggedIn}
             />
           </div>
 
@@ -506,8 +498,6 @@ export default function RecordPage() {
               onChange={(value, checked) =>
                 toggleTag(setBodyReactionTags, value, checked, bodyReactionTags)
               }
-              onInteract={handleInteractRequireLogin}
-              disabled={!isLoggedIn}
             />
           </div>
 
@@ -526,8 +516,6 @@ export default function RecordPage() {
               onChange={(value, checked) =>
                 toggleTag(setBehaviorTags, value, checked, behaviorTags)
               }
-              onInteract={handleInteractRequireLogin}
-              disabled={!isLoggedIn}
             />
           </div>
 
@@ -545,8 +533,6 @@ export default function RecordPage() {
 앞으로 결과가 걱정된다`}
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              onFocus={() => !isLoggedIn && handleInteractRequireLogin()}
-              readOnly={!isLoggedIn}
               rows={6}
               className="w-full rounded-xl border border-[#E8E2FF] px-4 py-3 text-sm placeholder:text-[#999999] focus:outline-none focus:ring-2 focus:ring-[#8E7CFF] focus:border-transparent resize-none"
             />
