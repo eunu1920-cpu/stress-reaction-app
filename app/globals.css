@@ -99,6 +99,29 @@
   animation: selection-feedback 0.3s ease-out forwards;
 }
 
+/* 홈 실시간 패턴 티커: 우→좌, 느린 속도 (가독성) */
+@keyframes home-ticker-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.home-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: home-ticker-marquee 120s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ticker-track {
+    animation: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

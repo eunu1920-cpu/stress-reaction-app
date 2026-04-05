@@ -77,26 +77,35 @@ function PromoSlideCard({ slide, sizes }: { slide: Slide; sizes: string }) {
         </div>
       </Link>
 
-      <div className="px-4 pb-4 pt-3 text-left">
+      <div className="px-4 pb-5 pt-3 text-left md:pb-4">
         <p className="text-xs font-semibold text-[#8E7CFF]">{slide.question}</p>
         <p className="mt-1.5 text-base font-bold leading-snug text-[#222]">
           {slide.hook}
         </p>
 
-        <button
-          type="button"
-          className="mt-2 text-xs font-medium text-[#8E7CFF] underline-offset-2 hover:underline md:hidden"
-          aria-expanded={mobileOpen}
-          aria-controls={detailId}
-          onClick={() => setMobileOpen((v) => !v)}
-        >
-          {mobileOpen ? '접기' : '더보기'}
-        </button>
+        {/* 모바일: 단추 없이 텍스트만 — 양끝 정렬로 간격 */}
+        <div className="mt-4 flex w-full items-center justify-between gap-4 md:hidden">
+          <button
+            type="button"
+            className="shrink-0 text-xs font-semibold text-[#8E7CFF] underline underline-offset-2 decoration-[#8E7CFF]/50 touch-manipulation active:opacity-80"
+            aria-expanded={mobileOpen}
+            aria-controls={detailId}
+            onClick={() => setMobileOpen((v) => !v)}
+          >
+            {mobileOpen ? '접기' : '더보기'}
+          </button>
+          <Link
+            href={slide.href}
+            className="shrink-0 text-xs font-semibold text-[#8E7CFF] underline underline-offset-2 decoration-[#8E7CFF]/50 touch-manipulation active:opacity-80"
+          >
+            둘러보기 →
+          </Link>
+        </div>
 
         <p
           id={detailId}
           className={cn(
-            'mt-2 text-xs leading-relaxed text-[#555] md:hidden',
+            'mt-3 rounded-xl border border-[#F0EDFF] bg-[#FAFAFA] px-3 py-3.5 text-xs leading-relaxed text-[#555] md:hidden',
             mobileOpen ? 'block' : 'hidden',
           )}
         >
@@ -109,12 +118,14 @@ function PromoSlideCard({ slide, sizes }: { slide: Slide; sizes: string }) {
           {slide.detail}
         </p>
 
-        <Link
-          href={slide.href}
-          className="mt-2 inline-block text-xs font-semibold text-[#8E7CFF] hover:underline"
-        >
-          둘러보기 →
-        </Link>
+        <div className="mt-2 hidden md:block">
+          <Link
+            href={slide.href}
+            className="inline-flex touch-manipulation items-center text-xs font-semibold text-[#8E7CFF] underline-offset-2 hover:underline"
+          >
+            둘러보기 →
+          </Link>
+        </div>
       </div>
     </div>
   )

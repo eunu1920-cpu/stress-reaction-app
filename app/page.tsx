@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { HomeActivityFeed } from '@/components/home-activity-feed'
 import { HomePromoCarousel } from '@/components/home-promo-carousel'
 
 export default function HomePage() {
@@ -12,6 +13,10 @@ export default function HomePage() {
             {`결정의 순간들\n급할 땐 지금 결정하고\n천천히 보면 패턴이 보인다.`}
           </span>
         </h1>
+
+        <div className="mt-6 w-full">
+          <HomeActivityFeed />
+        </div>
 
         <div className="mt-8 w-full">
           <HomePromoCarousel />
