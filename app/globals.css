@@ -109,10 +109,14 @@
   }
 }
 
+/* duration은 home-activity-feed에서 한 줄 길이에 맞춰 inline으로 덮어씀 */
 .home-ticker-track {
   display: flex;
   width: max-content;
-  animation: home-ticker-marquee 120s linear infinite;
+  animation-name: home-ticker-marquee;
+  animation-duration: 240s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
   will-change: transform;
 }
 

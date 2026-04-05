@@ -70,6 +70,38 @@ export function HomeActivityFeed() {
   const segment = React.useMemo(() => buildTickerSegment(items), [items])
   const first = items[0]
 
+  /** 문장이 길어질수록 같은 초 안에 더 많이 움직여 체감이 빨라짐 → 길이에 비례해 초를 늘림 (느린 픽셀 속도 유지) */
+  const trackRef = React.useRef<HTMLDivElement>(null)
+  const [tickerDurationSec, setTickerDurationSec] = React.useState(280)
+
+  const recalcTickerDuration = React.useCallback(() => {
+    const el = trackRef.current
+    if (!el) return
+    const total = el.scrollWidth
+    if (total <= 0) return
+    const oneSegmentPx = total / 2
+    const PX_PER_SEC = 9
+    const MIN_SEC = 280
+    const MAX_SEC = 1500
+    const raw = oneSegmentPx / PX_PER_SEC
+    setTickerDurationSec(Math.min(MAX_SEC, Math.max(MIN_SEC, raw)))
+  }, [])
+
+  React.useLayoutEffect(() => {
+    if (prefersReducedMotion) return
+    const el = trackRef.current
+    if (!el) return
+    const run = () => recalcTickerDuration()
+    run()
+    const raf = requestAnimationFrame(run)
+    const ro = new ResizeObserver(run)
+    ro.observe(el)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
+  }, [segment, recalcTickerDuration, prefersReducedMotion])
+
   if (!first) return null
 
   return (
@@ -94,7 +126,11 @@ export function HomeActivityFeed() {
           className="relative mt-1 overflow-hidden"
           style={{ maskImage: 'linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent)' }}
         >
-          <div className="home-ticker-track">
+          <div
+            ref={trackRef}
+            className="home-ticker-track"
+            style={{ animationDuration: `${tickerDurationSec}s` }}
+          >
             <span className="inline-block shrink-0 whitespace-nowrap pr-10 text-[11px] font-medium leading-snug text-[#333333]">
               {segment}
             </span>
