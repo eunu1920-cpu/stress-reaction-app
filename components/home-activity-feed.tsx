@@ -3,7 +3,8 @@
 import * as React from 'react'
 import { HOME_ACTIVITY_CURATED } from '@/lib/home-activity-curated'
 
-const LIST_COUNT = 5
+/** 티커에 넣을 최대 줄 수 (마퀴 한 바퀴에 보이는 다양성) */
+const MAX_TICKER_LINES = 10
 const REFETCH_MS = 45_000
 
 type FeedItem = { text: string; age: string; source?: 'curated' | 'service' }
@@ -19,6 +20,27 @@ function shuffle<T>(arr: T[]): T[] {
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
+}
+
+/** 라이브 줄을 섞고, 부족하면 예시 문장으로 채워 배포에서도 티커가 단조롭지 않게 함 */
+function mergeDiverseFeed(live: FeedItem[]): FeedItem[] {
+  const seen = new Set<string>()
+  const out: FeedItem[] = []
+  for (const row of shuffle(live)) {
+    const key = row.text.trim()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(row)
+  }
+  if (out.length >= MAX_TICKER_LINES) return out.slice(0, MAX_TICKER_LINES)
+  for (const row of shuffle(curatedItems())) {
+    const key = row.text.trim()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(row)
+    if (out.length >= MAX_TICKER_LINES) break
+  }
+  return out
 }
 
 async function fetchActivityFeed(): Promise<FeedItem[]> {
@@ -93,17 +115,17 @@ export function HomeActivityFeed() {
 
   const lines = React.useMemo(() => {
     if (mode === 'live') {
-      return items.slice(0, Math.min(LIST_COUNT, items.length))
+      return mergeDiverseFeed(items)
     }
     const pool = shuffle(items)
-    return pool.slice(0, Math.min(LIST_COUNT, pool.length))
+    return pool.slice(0, Math.min(MAX_TICKER_LINES, pool.length))
   }, [items, mode])
 
   if (lines.length === 0) return null
 
   const footer =
     mode === 'live'
-      ? '익명 기록 기준 · 태그만 표시'
+      ? '직접 기록(태그·한 줄) · 부족하면 예시 문장 보강'
       : '예시·발언 기반'
 
   const durationSec = Math.max(28, lines.length * 9)

@@ -433,7 +433,7 @@ export default function AnalysisPage() {
                   </div>
                 </div>
                 <p className="text-sm text-[#8E7CFF] font-medium text-center">
-                  기록을 7개 저장하면, 해당분석을 받으실 수 있어요.
+                  기록을 {ANALYSIS_BATCH_SIZE}개 저장하면, 해당 분석을 받으실 수 있어요.
                 </p>
                 <p className="text-sm text-[#666666] leading-relaxed text-center">
                   {progressMessage}
@@ -456,7 +456,7 @@ export default function AnalysisPage() {
               <>
                 {selectedAnalysis && (
                   <p className="text-xs text-[#777777] text-center">
-                    {selectedAnalysisRound}회차 분석 · {formatDateShort(selectedAnalysis.periodStart)} ~ {formatDateShort(selectedAnalysis.periodEnd)} (최근 7개 기록)
+                    {selectedAnalysisRound}회차 분석 · {formatDateShort(selectedAnalysis.periodStart)} ~ {formatDateShort(selectedAnalysis.periodEnd)} (최근 {ANALYSIS_BATCH_SIZE}개 기록)
                   </p>
                 )}
                 <div className="rounded-lg bg-[#F5F3FA] p-6 min-w-0">

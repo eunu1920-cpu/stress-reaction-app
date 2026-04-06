@@ -8,7 +8,10 @@ import { useAuth } from '@/lib/auth-context'
 import { LoginModal } from '@/components/login-modal'
 import { hasManualRecordToday } from '@/lib/daily-limits'
 import { supabase } from '@/lib/supabase'
-import { showRecordSuccessToast } from '@/components/record-success-toast'
+import {
+  getRecordSuccessHint,
+  showRecordSuccessToast,
+} from '@/components/record-success-toast'
 
 type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -302,7 +305,10 @@ export default function RecordPage() {
     }
     setAlreadyRecordedToday(true)
     setSaveStatus('success')
-    showRecordSuccessToast()
+    const idForHint = (demoMode ?? isDemoMode) ? null : userId
+    void getRecordSuccessHint(idForHint)
+      .then((hint) => showRecordSuccessToast(hint))
+      .catch(() => showRecordSuccessToast())
     setTimeout(() => setSaveStatus('idle'), SUCCESS_DISPLAY_MS)
     return true
   }

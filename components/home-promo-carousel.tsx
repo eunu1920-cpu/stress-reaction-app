@@ -156,29 +156,8 @@ export function HomePromoCarousel() {
 
   return (
     <div className="w-full">
-      <Carousel
-        setApi={setApi}
-        opts={{ loop: true, align: 'start' }}
-        className="w-full outline-none focus-visible:ring-2 focus-visible:ring-[#CFC2FF] focus-visible:ring-offset-2"
-        tabIndex={0}
-      >
-        <CarouselContent className="-ml-3">
-          {SLIDES.map((slide) => (
-            <CarouselItem
-              key={slide.id}
-              className="basis-[88%] pl-3 sm:basis-[85%] md:basis-[88%]"
-            >
-              <PromoSlideCard
-                slide={slide}
-                sizes="(max-width: 768px) 90vw, 400px"
-              />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
-
       <div
-        className="mt-4 flex items-center justify-center gap-5"
+        className="mb-3 flex items-center justify-center gap-5"
         role="group"
         aria-label="소개 슬라이드 넘기기"
       >
@@ -210,6 +189,24 @@ export function HomePromoCarousel() {
           <ChevronRight className="h-5 w-5" aria-hidden />
         </button>
       </div>
+
+      <Carousel
+        setApi={setApi}
+        opts={{ loop: true, align: 'start' }}
+        className="w-full outline-none focus-visible:ring-2 focus-visible:ring-[#CFC2FF] focus-visible:ring-offset-2"
+        tabIndex={0}
+      >
+        <CarouselContent className="ml-0">
+          {SLIDES.map((slide) => (
+            <CarouselItem key={slide.id} className="max-w-full basis-full pl-0">
+              <PromoSlideCard
+                slide={slide}
+                sizes="(max-width: 768px) 100vw, 448px"
+              />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   )
 }
