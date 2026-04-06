@@ -25,6 +25,13 @@ function isSecondRowActive(pathname: string, href: string): boolean {
   if (href === '/stress') {
     return pathname === '/stress' || pathname.startsWith('/result/stress')
   }
+  if (href === '/history') {
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`) ||
+      pathname.startsWith('/monthly')
+    )
+  }
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 

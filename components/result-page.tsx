@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { RotateCcw } from 'lucide-react'
+import type { ObservationRecord } from '@/lib/history-storage'
 import { getResultData, type TestType } from '@/lib/result-registry'
 import { resultData, bodyData, cognitionData, insightPools } from '@/lib/result-data'
 import { saveData, loadRecords, updateRecordMemo } from '@/lib/storage'
@@ -44,7 +45,6 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   const [memo, setMemo] = useState('')
   const [memoSaved, setMemoSaved] = useState(false)
   const [loginModalOpen, setLoginModalOpen] = useState(false)
-  const lastSavedSignatureRef = useRef<string | null>(null)
 
   const type = String(resultType ?? q2Answer).toUpperCase()
   const dataSet = getResultData(testType, type)
@@ -55,12 +55,9 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   const cardImageSrc = `/character-${type}.jpg`
   const hasFullData = !!q1Answer && !!q3Answer && !!q1Data && !!q3Data
 
-  // 결과 자동 저장 (전체 플로우일 때만)
+  // 결과 자동 저장 (전체 플로우일 때만) — saveData 쪽에서 짧은 시간 내 중복 요청 제거
   useEffect(() => {
     if (!hasFullData || !q2Data) return
-    const signature = `${q1Answer}|${q2Answer}|${q3Answer}`
-    if (lastSavedSignatureRef.current === signature) return
-    lastSavedSignatureRef.current = signature
     void saveData(
       {
         category: 'test',
@@ -116,14 +113,17 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
   }
 
   const handleSaveMemo = async () => {
-    const records = await loadRecords(user?.id ?? null)
     const typeUpper = type.toUpperCase()
-    const sorted = records
-      .slice()
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    const match = sorted.find(
-      (r) => (r.resultType || '').toUpperCase() === typeUpper
-    )
+    let match: ObservationRecord | undefined
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const records = await loadRecords(user?.id ?? null)
+      const sorted = records
+        .slice()
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      match = sorted.find((r) => (r.resultType || '').toUpperCase() === typeUpper)
+      if (match) break
+      if (attempt < 5) await new Promise((res) => setTimeout(res, 120))
+    }
     if (match) {
       await updateRecordMemo(match.id, memo.trim() || '', user?.id ?? null)
     } else {

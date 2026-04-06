@@ -2,6 +2,43 @@
 
 import { supabase } from '@/lib/supabase'
 
+const RECENT_DUP_MS = 120_000
+
+async function hasRecentDuplicate(
+  userId: string,
+  params: SaveRecordParams,
+  content: string | null,
+): Promise<boolean> {
+  const since = new Date(Date.now() - RECENT_DUP_MS).toISOString()
+
+  if (params.questionId && params.optionId) {
+    const { data, error } = await supabase
+      .from('records')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('question_id', params.questionId)
+      .eq('option_id', params.optionId)
+      .gte('created_at', since)
+      .limit(1)
+    if (error || !data) return false
+    return data.length > 0
+  }
+
+  const contentTrim = (content ?? '').trim()
+  if (!contentTrim) return false
+
+  const { data: rows, error } = await supabase
+    .from('records')
+    .select('id, content')
+    .eq('user_id', userId)
+    .eq('pattern', params.pattern)
+    .gte('created_at', since)
+    .limit(50)
+
+  if (error || !rows?.length) return false
+  return rows.some((r) => (r.content ?? '').trim() === contentTrim)
+}
+
 export type SaveRecordParams = {
   userId?: string | null
   category: string
@@ -30,6 +67,10 @@ export async function saveRecord(params: SaveRecordParams): Promise<boolean> {
   if (!user) return false
 
   const content = params.content ?? params.memo ?? params.summary ?? null
+
+  if (await hasRecentDuplicate(user.id, params, content)) {
+    return true
+  }
 
   const base: Record<string, unknown> = {
     user_id: user.id,

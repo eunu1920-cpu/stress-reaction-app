@@ -18,6 +18,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ANALYSIS_BATCH_SIZE } from '@/lib/analysis-progress'
+import {
+  dominantPatternChipsByAxisForMonth,
+  formatMonthHeading,
+  groupRecordsByMonth,
+} from '@/lib/monthly-analysis'
 import { cn } from '@/lib/utils'
 import { ChevronDownIcon } from 'lucide-react'
 
@@ -113,6 +118,10 @@ function formatTagsForDisplay(tags: string[] | null | undefined): string {
 }
 
 function getSituationLabel(record: ObservationRecord): string {
+  if (record.sourceKind === 'sample' && record.answers?.q1) {
+    const raw = record.answers.q1.trim()
+    if (raw && !raw.startsWith('[')) return raw
+  }
   if (record.sourceKind === 'pattern_lens' && record.answers?.q1) {
     const arr = parseJsonArray(record.answers.q1)
     const text = formatTagsForDisplay(arr)
@@ -135,6 +144,20 @@ function getSituationLabel(record: ObservationRecord): string {
 }
 
 function getReactionLabel(record: ObservationRecord): string {
+  if (record.sourceKind === 'sample') {
+    if (record.resultType === 'QR') {
+      const q2 = parseJsonArray(record.answers?.q2 ?? '')
+      const q3 = parseJsonArray(record.answers?.q3 ?? '')
+      const combined = [formatTagsForDisplay(q2), formatTagsForDisplay(q3)]
+        .filter(Boolean)
+        .join(', ')
+      if (combined) return combined
+      const parts = (record.summary || '').split(' · ')
+      const fromSummary = parts[1]?.trim() || parts[0]?.trim()
+      return fromSummary || '-'
+    }
+    return record.summary?.trim() || '-'
+  }
   if (record.sourceKind === 'pattern_lens') {
     const q2 = parseJsonArray(record.answers?.q2 ?? '')
     const q3 = parseJsonArray(record.answers?.q3 ?? '')
@@ -251,6 +274,101 @@ function RecordCard({
   )
 }
 
+function TimelineMonthSections({
+  monthData,
+  onCardClick,
+  isSample,
+}: {
+  monthData: { map: Map<string, ObservationRecord[]>; keys: string[] }
+  onCardClick: (record: ObservationRecord) => void
+  isSample?: boolean
+}) {
+  const { map, keys } = monthData
+  if (keys.length === 0) return null
+  return (
+    <div className="space-y-8">
+      {keys.map((monthKey) => {
+        const records = map.get(monthKey) ?? []
+        const chips = dominantPatternChipsByAxisForMonth(records)
+        return (
+          <section
+            key={monthKey}
+            className="rounded-2xl border border-[#DDD4FF] bg-white p-4 shadow-[0_2px_12px_rgba(94,75,180,0.06)] sm:p-5"
+          >
+            <div className="mb-5 flex flex-col gap-4 border-b border-[#E8E2FF] pb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="flex items-center gap-3">
+                <span
+                  className="hidden h-10 w-1 shrink-0 rounded-full bg-[#8E7CFF] sm:block"
+                  aria-hidden
+                />
+                <h2 className="text-xl font-bold tracking-tight text-[#222222] sm:text-2xl">
+                  {formatMonthHeading(monthKey)}
+                </h2>
+              </div>
+              {chips.length > 0 ? (
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  {chips.map((c) => (
+                    <span
+                      key={`${c.axis}-${c.code}`}
+                      className={cn(
+                        'inline-flex max-w-full flex-col gap-0.5 rounded-xl border px-3 py-2 text-left shadow-sm',
+                        c.axis === 'S' && 'border-red-200 bg-red-50/90',
+                        c.axis === 'R' && 'border-yellow-300 bg-yellow-50/95',
+                        c.axis === 'T' && 'border-blue-200 bg-blue-50/90',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'font-mono text-base font-bold leading-none tracking-wide sm:text-lg',
+                          c.axis === 'S' && 'text-red-600',
+                          c.axis === 'R' && 'text-yellow-700',
+                          c.axis === 'T' && 'text-blue-600',
+                        )}
+                      >
+                        {c.code}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-xs font-medium sm:text-sm',
+                          c.axis === 'S' && 'text-red-800/90',
+                          c.axis === 'R' && 'text-yellow-900/90',
+                          c.axis === 'T' && 'text-blue-900/85',
+                        )}
+                      >
+                        {c.label}
+                        <span
+                          className={cn(
+                            'ml-1.5 font-normal',
+                            c.axis === 'S' && 'text-red-700/75',
+                            c.axis === 'R' && 'text-yellow-800/80',
+                            c.axis === 'T' && 'text-blue-800/75',
+                          )}
+                        >
+                          ({c.count}/{c.total})회
+                        </span>
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {records.map((record) => (
+                <RecordCard
+                  key={record.id}
+                  record={record}
+                  onClick={() => onCardClick(record)}
+                  isSample={isSample}
+                />
+              ))}
+            </div>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function HistoryPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -332,6 +450,21 @@ export default function HistoryPage() {
     }
     return list
   }, [history, recordTypeFilter, category, viewTab, selectedDate, recordsByDate])
+
+  /** 타임라인: 필터된 기록을 월별로 묶음 (최신 월 먼저) */
+  const timelineByMonth = useMemo(() => {
+    if (!filteredHistory?.length) return null
+    const map = groupRecordsByMonth(filteredHistory)
+    const keys = Array.from(map.keys()).sort((a, b) => b.localeCompare(a))
+    return { map, keys }
+  }, [filteredHistory])
+
+  /** 비로그인·빈 히스토리 샘플: 실제 타임라인과 동일한 월 헤드라인 */
+  const sampleTimelineByMonth = useMemo(() => {
+    const map = groupRecordsByMonth(SAMPLE_HISTORY_RECORDS)
+    const keys = Array.from(map.keys()).sort((a, b) => b.localeCompare(a))
+    return { map, keys }
+  }, [])
 
   const handleCardClick = (record: ObservationRecord) => {
     if (record.sourceKind === 'pattern_lens') {
@@ -469,16 +602,11 @@ export default function HistoryPage() {
               <p className="text-sm font-semibold text-amber-800 mb-3">
                 샘플
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {SAMPLE_HISTORY_RECORDS.map((record) => (
-                  <RecordCard
-                    key={record.id}
-                    record={record}
-                    onClick={() => {}}
-                    isSample
-                  />
-                ))}
-              </div>
+              <TimelineMonthSections
+                monthData={sampleTimelineByMonth}
+                onCardClick={() => {}}
+                isSample
+              />
             </div>
           </div>
         )}
@@ -491,16 +619,11 @@ export default function HistoryPage() {
                 이 조건에 맞는 기록이 없습니다.
               </div>
             )}
-            {filteredHistory && filteredHistory.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredHistory.map((record) => (
-                  <RecordCard
-                    key={record.id}
-                    record={record}
-                    onClick={() => handleCardClick(record)}
-                  />
-                ))}
-              </div>
+            {timelineByMonth && timelineByMonth.keys.length > 0 && (
+              <TimelineMonthSections
+                monthData={timelineByMonth}
+                onCardClick={handleCardClick}
+              />
             )}
           </>
         )}

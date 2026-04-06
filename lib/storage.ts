@@ -2,6 +2,11 @@
 
 import type { ObservationRecord } from '@/lib/history-storage'
 import type { SaveRecordParams } from '@/lib/save-record'
+import {
+  buildSaveFingerprint,
+  claimSaveFingerprint,
+  releaseSaveFingerprint,
+} from '@/lib/save-dedupe'
 
 const MYVIEW_TEMP_KEY = 'myview_temp_data'
 const MYVIEW_LOCAL_ANALYSIS_KEY = 'myview_local_analysis'
@@ -136,42 +141,54 @@ export async function saveData(
   params: SaveRecordParams,
   userId: string | null
 ): Promise<boolean> {
-  if (userId) {
-    const { saveRecord } = await import('@/lib/save-record')
-    const ok = await saveRecord({ ...params, userId })
-    if (ok) dispatchRecordsUpdated()
-    return ok
+  const fingerprint = buildSaveFingerprint(params)
+  if (!claimSaveFingerprint(fingerprint)) {
+    return true
   }
 
-  const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
-  const anon = await ensureAnonymousSession()
-  if (anon) {
-    if (getLocalTempRecords().length > 0) {
-      await migrateLocalToSupabase(anon.userId)
+  try {
+    if (userId) {
+      const { saveRecord } = await import('@/lib/save-record')
+      const ok = await saveRecord({ ...params, userId })
+      if (ok) dispatchRecordsUpdated()
+      else releaseSaveFingerprint(fingerprint)
+      return ok
     }
-    const { saveRecord } = await import('@/lib/save-record')
-    const ok = await saveRecord({ ...params, userId: anon.userId })
-    if (ok) dispatchRecordsUpdated()
-    return ok
-  }
 
-  const data = getLocalTempData()
-  const id = generateLocalId()
-  const localRec = paramsToLocalRecord(params, id)
-  data.records.unshift(localRec)
-
-  if (params.pattern === 'manual_record') {
-    data.progress.recordsCount = (data.progress.recordsCount ?? 0) + 1
-  } else {
-    const cat = getTestCategoryFromPattern(params.resultType)
-    if (cat && !data.progress.testsCompleted.includes(cat)) {
-      data.progress.testsCompleted = [...data.progress.testsCompleted, cat]
+    const { ensureAnonymousSession } = await import('@/lib/ensure-anonymous-session')
+    const anon = await ensureAnonymousSession()
+    if (anon) {
+      if (getLocalTempRecords().length > 0) {
+        await migrateLocalToSupabase(anon.userId)
+      }
+      const { saveRecord } = await import('@/lib/save-record')
+      const ok = await saveRecord({ ...params, userId: anon.userId })
+      if (ok) dispatchRecordsUpdated()
+      else releaseSaveFingerprint(fingerprint)
+      return ok
     }
-  }
 
-  setLocalTempData(data)
-  dispatchRecordsUpdated()
-  return true
+    const data = getLocalTempData()
+    const id = generateLocalId()
+    const localRec = paramsToLocalRecord(params, id)
+    data.records.unshift(localRec)
+
+    if (params.pattern === 'manual_record') {
+      data.progress.recordsCount = (data.progress.recordsCount ?? 0) + 1
+    } else {
+      const cat = getTestCategoryFromPattern(params.resultType)
+      if (cat && !data.progress.testsCompleted.includes(cat)) {
+        data.progress.testsCompleted = [...data.progress.testsCompleted, cat]
+      }
+    }
+
+    setLocalTempData(data)
+    dispatchRecordsUpdated()
+    return true
+  } catch {
+    releaseSaveFingerprint(fingerprint)
+    return false
+  }
 }
 
 /** 공통 조회: 로그인·익명→Supabase, 익명 불가 시에만 localStorage */
@@ -408,19 +425,46 @@ export function clearLocalTempData(): void {
   }
 }
 
+type MigrationDedupeStub = { pattern: string; content: string; day: string }
+
+function migrationStubFromLocal(r: LocalRecord): MigrationDedupeStub {
+  return {
+    pattern: (r.pattern ?? r.resultType ?? '').trim(),
+    content: (r.content ?? r.memo ?? r.summary ?? '').trim(),
+    day: new Date(r.date).toDateString(),
+  }
+}
+
+function migrationStubsMatch(a: MigrationDedupeStub, b: MigrationDedupeStub): boolean {
+  return a.pattern === b.pattern && a.content === b.content && a.day === b.day
+}
+
 /** 로컬 데이터를 Supabase로 일괄 업로드 (로그인 시 호출) */
 export async function migrateLocalToSupabase(userId: string): Promise<{ migrated: number; failed: number }> {
   const { supabase } = await import('@/lib/supabase')
+  const { fetchRecords } = await import('@/lib/history-storage')
   const localRecords = getLocalTempRecords()
   if (localRecords.length === 0) {
     clearLocalTempData()
     return { migrated: 0, failed: 0 }
   }
 
+  const existing = await fetchRecords(userId)
+  const stubs: MigrationDedupeStub[] = existing.map((e) => ({
+    pattern: (e.pattern ?? e.resultType ?? '').trim(),
+    content: ((e.memo ?? '').trim() || (e.summary ?? '').trim()),
+    day: new Date(e.date).toDateString(),
+  }))
+
   let migrated = 0
   let failed = 0
 
   for (const r of localRecords) {
+    const ls = migrationStubFromLocal(r)
+    if (stubs.some((s) => migrationStubsMatch(ls, s))) {
+      continue
+    }
+
     const content = r.content ?? r.memo ?? r.summary ?? null
     const base: Record<string, unknown> = {
       user_id: userId,
@@ -453,6 +497,7 @@ export async function migrateLocalToSupabase(userId: string): Promise<{ migrated
       failed++
     } else {
       migrated++
+      stubs.push(ls)
     }
   }
 
