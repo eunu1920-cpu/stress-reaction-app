@@ -15,44 +15,50 @@ import { cn } from '@/lib/utils'
 const SLIDES = [
   {
     id: '1',
-    href: '/stress',
-    image: '/images/home-carousel/home-carousel-01-identity.jpg',
+    href: '/record',
+    image: '/images/home-carousel/home-carousel-01-record.jpg',
     imageAlt:
-      '집 소파에 앉아 스마트폰을 보며 잠시 멈춰 생각에 잠긴 사람의 일상 장면',
-    question: '이게 뭔가요?',
-    hook: "나도 몰랐던 나의 '반응 패턴'을 찾아주는 AI 거울입니다.",
+      '책상에 앉아 머리를 짚고, 머릿속이 복잡한 듯한 사람. 노트와 스마트폰·포스트잇이 있는 책상',
+    question: '① 기록',
+    hook: '건드렸을 때,\n나는 어떻게 반응했나요?',
+    subtitle:
+      '생각 말고\n그 순간 내 반응을 한 줄로 남겨보세요',
     detail:
-      "단순한 심리 테스트가 아닙니다. 일상적인 선택 속에서 반복되는 당신만의 독특한 반응 체계를 AI가 객관적으로 포착해내는 '자기 관찰 도구'입니다. 보이지 않던 내 마음의 지도를 그려준다고 생각하시면 돼요.",
+      '나중엔\n“아 나는 이런 데서 흔들리는구나”\n보이기 시작합니다',
   },
   {
     id: '2',
     href: '/pattern',
     image: '/images/home-carousel/home-carousel-02-accumulation.jpg',
     imageAlt: '창가나 책상에서 찻잔을 두고 잠시 멈춰 창밖을 바라보는 사람',
-    question: '나랑 무슨 상관인가요?',
-    hook: '반복되는 고민과 후회의 고리를 끊어낼 수 있습니다.',
-    detail:
-      '「왜 나는 매번 같은 상황에서 스트레스를 받을까?」라는 질문에 적용이 힘든 답이 아니라, 「당신의 반응패턴 구조」를 보여드립니다. 자신의 패턴을 알면 결정적인 순간에 감정에 휘둘리지 않고, 나에게 가장 이로운 선택을 할 수 있는 「주도권」을 갖게 됩니다.',
+    question: '② 패턴돋보기',
+    hook: '좋은 말은 알겠는데\n왜 나한테는 안 될까요?',
+    subtitle:
+      '와닿는 질문 하나를 고르면\n오늘의 관찰이 시작됩니다',
+    detail: '정답 찾는 게 아니라\n나를 이해하는 연습입니다',
   },
   {
     id: '3',
     href: '/history',
     image: '/images/home-carousel/home-carousel-03-flow.jpg',
     imageAlt: '저녁 조명 아래 노트나 일기를 펼쳐 하루를 정리하는 차분한 순간',
-    question: '하면 뭐가 나오나요?',
-    hook: "당신만을 위한 「날카로운 분석 리포트」와 「행동 가이드」가 나옵니다.",
+    question: '③ 히스토리',
+    hook: '나는 왜\n항상 비슷한 데서 흔들릴까요?',
+    subtitle:
+      '지나온 기록이 모이면\n내 반응 패턴이 보입니다',
     detail:
-      '흩어져 있던 당신의 기록들이 모여 하나의 「행동 지도」가 완성됩니다. AI가 당신의 데이터를 분석해 「당신은 이런 상황에서 이렇게 반응하는 경향이 있습니다」라는 날카로운 통찰과 함께, 삶의 질을 높여줄 구체적인 코칭 문장을 선물합니다.',
+      '“아, 나는 여기서 자주 반응하는구나”\n처음으로 보이기 시작합니다',
   },
   {
     id: '4',
-    href: '/record',
+    href: '/analysis',
     image: '/images/home-carousel/home-carousel-04-quick-pick.jpg',
-    imageAlt: '대중교통이나 벤치에서 휴대폰을 보며 잠시 숨 고르는 사람의 모습',
-    question: '믿어도 되나요?',
-    hook: '데이터는 거짓말을 하지 않습니다. 당신의 기록이 증거입니다.',
-    detail:
-      'MyView는 추측하지 않습니다. 당신이 직접 참여한 수천 개의 이벤트와 평균 13분 이상의 깊은 몰입 데이터(GA4 기반)를 바탕으로 분석합니다. 당신이 직접 쌓아 올린 기록을 기반으로 하기에, 그 어떤 진단보다 당신을 가장 잘 대변합니다.',
+    imageAlt:
+      '복잡하게 얽힌 실타래 사이에서 한 가닥 실을 차분히 정리하는 사람',
+    question: '④ 분석',
+    hook: '생각은 계속 바뀌지만\n반응은 반복됩니다',
+    subtitle: '반응이 정리되면\n지금까지의 내가 보입니다',
+    detail: '나를 이해하는 순간\n관계도, 선택도 달라집니다',
   },
 ] as const
 
@@ -79,8 +85,11 @@ function PromoSlideCard({ slide, sizes }: { slide: Slide; sizes: string }) {
 
       <div className="px-4 pb-5 pt-3 text-left md:pb-4">
         <p className="text-xs font-semibold text-[#8E7CFF]">{slide.question}</p>
-        <p className="mt-1.5 text-base font-bold leading-snug text-[#222]">
+        <p className="mt-1.5 whitespace-pre-line text-base font-bold leading-snug text-[#222]">
           {slide.hook}
+        </p>
+        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#555555]">
+          {slide.subtitle}
         </p>
 
         {/* 모바일: 단추 없이 텍스트만 — 양끝 정렬로 간격 */}
@@ -105,7 +114,7 @@ function PromoSlideCard({ slide, sizes }: { slide: Slide; sizes: string }) {
         <p
           id={detailId}
           className={cn(
-            'mt-3 rounded-xl border border-[#F0EDFF] bg-[#FAFAFA] px-3 py-3.5 text-xs leading-relaxed text-[#555] md:hidden',
+            'mt-3 whitespace-pre-line rounded-xl border border-[#F0EDFF] bg-[#FAFAFA] px-3 py-3.5 text-xs leading-relaxed text-[#555] md:hidden',
             mobileOpen ? 'block' : 'hidden',
           )}
         >
@@ -113,7 +122,7 @@ function PromoSlideCard({ slide, sizes }: { slide: Slide; sizes: string }) {
         </p>
 
         <p
-          className="mt-2 hidden max-h-0 overflow-hidden text-xs leading-relaxed text-[#555] opacity-0 transition-[max-height,opacity,margin] duration-300 ease-out md:mt-0 md:block md:max-h-0 md:opacity-0 md:group-hover:mt-2 md:group-hover:max-h-[min(28rem,70vh)] md:group-hover:opacity-100"
+          className="mt-2 hidden max-h-0 overflow-hidden whitespace-pre-line text-xs leading-relaxed text-[#555] opacity-0 transition-[max-height,opacity,margin] duration-300 ease-out md:mt-0 md:block md:max-h-0 md:opacity-0 md:group-hover:mt-2 md:group-hover:max-h-[min(28rem,70vh)] md:group-hover:opacity-100"
         >
           {slide.detail}
         </p>

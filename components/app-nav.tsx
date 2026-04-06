@@ -14,11 +14,11 @@ import { LoginModal } from '@/components/login-modal'
 import { cn } from '@/lib/utils'
 
 const SECOND_ROW = [
-  { href: '/stress', label: '반응' },
-  { href: '/pattern', label: '관찰' },
-  { href: '/record', label: '정리' },
-  { href: '/history', label: '수집' },
+  { href: '/record', label: '기록' },
+  { href: '/pattern', label: '패턴' },
+  { href: '/history', label: '히스토리' },
   { href: '/analysis', label: '분석' },
+  { href: '/stress', label: '테스트' },
 ] as const
 
 function isSecondRowActive(pathname: string, href: string): boolean {

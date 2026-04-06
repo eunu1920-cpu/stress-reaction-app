@@ -99,29 +99,24 @@
   animation: selection-feedback 0.3s ease-out forwards;
 }
 
-/* 홈 실시간 패턴 티커: 우→좌, 느린 속도 (가독성) */
-@keyframes home-ticker-marquee {
+/** 홈 실시간 패턴: 우→좌 무한 흐름 (트랙은 내용 2회 복제 후 -50% 이동) */
+@keyframes home-marquee {
   from {
-    transform: translate3d(0, 0, 0);
+    transform: translateX(0);
   }
   to {
-    transform: translate3d(-50%, 0, 0);
+    transform: translateX(-50%);
   }
 }
 
-/* duration은 home-activity-feed에서 한 줄 길이에 맞춰 inline으로 덮어씀 */
-.home-ticker-track {
-  display: flex;
+.home-marquee-track {
   width: max-content;
-  animation-name: home-ticker-marquee;
-  animation-duration: 240s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  animation: home-marquee var(--home-marquee-duration, 42s) linear infinite;
   will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-ticker-track {
+  .home-marquee-track {
     animation: none;
   }
 }

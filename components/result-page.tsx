@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { PATTERN_LENS_RELATION_HREF, ResultMemoSection } from '@/components/result-memo-section'
 import { ResultMemoDisplay } from '@/components/result-memo-display'
 import { LoginModal } from '@/components/login-modal'
+import { SimilarReactionsBlock } from '@/components/similar-reactions-block'
 
 const S_CODE_PATTERNS: Record<string, string> = {
   S1: "👥 자극 밀도 높은 환경",
@@ -199,6 +200,10 @@ export function ResultPage({ testType = 'stress', resultType, q2Answer, q1Answer
             </button>
           </div>
         </section>
+
+        {testType === 'stress' && /^S[1-8]$/.test(type) ? (
+          <SimilarReactionsBlock userType={type} />
+        ) : null}
 
         {/* 2. 해석 섹션 - 클릭 시에만 표시 */}
         {showAnalysis && (
