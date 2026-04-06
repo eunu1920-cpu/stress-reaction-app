@@ -306,12 +306,12 @@ function TimelineMonthSections({
                 </h2>
               </div>
               {chips.length > 0 ? (
-                <div className="flex flex-wrap gap-2 sm:justify-end">
+                <div className="flex min-w-0 flex-1 flex-nowrap justify-end gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:gap-2 sm:overflow-visible [&::-webkit-scrollbar]:hidden">
                   {chips.map((c) => (
                     <span
                       key={`${c.axis}-${c.code}`}
                       className={cn(
-                        'inline-flex max-w-full flex-col gap-0.5 rounded-xl border px-3 py-2 text-left shadow-sm',
+                        'inline-flex min-w-0 shrink-0 flex-col gap-0.5 rounded-xl border px-2 py-1.5 text-left shadow-sm sm:px-3 sm:py-2',
                         c.axis === 'S' && 'border-red-200 bg-red-50/90',
                         c.axis === 'R' && 'border-yellow-300 bg-yellow-50/95',
                         c.axis === 'T' && 'border-blue-200 bg-blue-50/90',
@@ -319,33 +319,34 @@ function TimelineMonthSections({
                     >
                       <span
                         className={cn(
-                          'font-mono text-base font-bold leading-none tracking-wide sm:text-lg',
+                          'whitespace-nowrap font-mono text-sm font-bold leading-tight tracking-wide sm:text-base',
                           c.axis === 'S' && 'text-red-600',
                           c.axis === 'R' && 'text-yellow-700',
                           c.axis === 'T' && 'text-blue-600',
                         )}
                       >
                         {c.code}
+                        <span
+                          className={cn(
+                            'font-sans text-[13px] font-semibold sm:text-sm',
+                            c.axis === 'S' && 'text-red-700/85',
+                            c.axis === 'R' && 'text-yellow-800/85',
+                            c.axis === 'T' && 'text-blue-800/85',
+                          )}
+                        >
+                          {' '}
+                          ({c.count}/{c.total})회
+                        </span>
                       </span>
                       <span
                         className={cn(
-                          'text-xs font-medium sm:text-sm',
+                          'text-[11px] font-medium leading-tight sm:text-xs',
                           c.axis === 'S' && 'text-red-800/90',
                           c.axis === 'R' && 'text-yellow-900/90',
                           c.axis === 'T' && 'text-blue-900/85',
                         )}
                       >
                         {c.label}
-                        <span
-                          className={cn(
-                            'ml-1.5 font-normal',
-                            c.axis === 'S' && 'text-red-700/75',
-                            c.axis === 'R' && 'text-yellow-800/80',
-                            c.axis === 'T' && 'text-blue-800/75',
-                          )}
-                        >
-                          ({c.count}/{c.total})회
-                        </span>
                       </span>
                     </span>
                   ))}
